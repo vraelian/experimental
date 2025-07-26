@@ -1,3 +1,5 @@
+import { DATE_CONFIG } from './data/gamedata.js';
+
 export function formatCredits(amount, withSymbol = true) {
     const num = Math.floor(amount);
     const prefix = withSymbol ? '⌬ ' : '';
@@ -12,14 +14,6 @@ export function calculateInventoryUsed(inventory) {
      if (!inventory) return 0;
     return Object.values(inventory).reduce((acc, item) => acc + item.quantity, 0);
 }
-
-const DATE_CONFIG = {
-    START_YEAR: 2140,
-    START_DAY_OF_WEEK: 1,
-    DAYS_IN_MONTH: [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31],
-    MONTH_NAMES: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
-    DAY_NAMES: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-};
 
 function getDaySuffix(day) {
     if (day > 3 && day < 21) return 'th';
@@ -46,4 +40,9 @@ export function getDateFromDay(dayNumber) {
     const dayOfMonth = dayOfYear + 1;
     const monthName = DATE_CONFIG.MONTH_NAMES[monthIndex];
     return `${dayOfWeek}, ${monthName} ${dayOfMonth}${getDaySuffix(dayOfMonth)}, ${year}`;
+}
+
+export function skewedRandom(min, max) {
+    let rand = (Math.random() + Math.random() + Math.random()) / 3;
+    return Math.floor(min + (max - min) * Math.pow(rand, 0.5));
 }

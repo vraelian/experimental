@@ -1,12 +1,12 @@
 export const CONFIG = {
     STARTING_CREDITS: 8000,
     STARTING_DEBT: 25000,
-    STARTING_DEBT_INTEREST: 125, // Weekly interest for the initial 25k debt
+    STARTING_DEBT_INTEREST: 125,
     INTEL_COST_PERCENTAGE: 0.20,
     INTEL_MIN_CREDITS: 5000,
     INTEL_CHANCE: 0.3,
     REPAIR_COST_PER_HP: 75,
-    REPAIR_AMOUNT_PER_TICK: 10, // Repair 10% of max hull per tick
+    REPAIR_AMOUNT_PER_TICK: 10,
     INTEREST_INTERVAL: 7,
     PASSIVE_REPAIR_RATE: 0.02,
     HULL_DECAY_PER_TRAVEL_DAY: 1 / 7,
@@ -14,13 +14,13 @@ export const CONFIG = {
     INTEL_DEPRESSION_MOD: 0.5,
     SHIP_SELL_MODIFIER: 0.75,
     RARE_SHIP_CHANCE: 0.3,
-    SAVE_KEY: 'orbitalTraderSave_v2',
+    SAVE_KEY: 'orbitalTraderSave_v19',
     PRICE_HISTORY_LENGTH: 50,
     FINANCE_HISTORY_LENGTH: 10,
     DAILY_PRICE_VOLATILITY: 0.035,
     MEAN_REVERSION_STRENGTH: 0.01,
     LOAN_GARNISHMENT_DAYS: 180,
-    LOAN_GARNISHMENT_PERCENT: 0.14,
+    LOAN_GARNISHMENT_PERCENT: 0.07,
     RANDOM_EVENT_CHANCE: 0.07,
     COMMODITY_MILESTONES: [
         { threshold: 30000, unlockLevel: 2, message: "Your growing reputation has unlocked access to more advanced industrial hardware.<br>New opportunities await." },
