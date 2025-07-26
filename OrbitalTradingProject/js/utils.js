@@ -1,4 +1,5 @@
-import { DATE_CONFIG } from './data/gamedata.js';
+// js/utils.js
+import { DATE_CONFIG } from './data/dateConfig.js';
 
 export function formatCredits(amount, withSymbol = true) {
     const num = Math.floor(amount);

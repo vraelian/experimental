@@ -37,7 +37,6 @@ export class EventManager {
              if(this.gameState.currentView === 'market-view') {
                  this.uiManager.renderMarketView(this.gameState.getState());
              }
-             //this.uiManager.updateGraphTooltipPosition();
         });
         window.addEventListener('scroll', () => this.uiManager.updateGraphTooltipPosition(), true);
     }
@@ -121,8 +120,8 @@ export class EventManager {
         const wasClickInsideTooltip = e.target.closest('.lore-tooltip, .tutorial-tooltip');
         const visibleTooltip = document.querySelector('.lore-tooltip.visible, .tutorial-tooltip.visible');
 
-        if (trigger) {
-            const tooltip = trigger.querySelector('.lore-tooltip, .tutorial-tooltip');
+        if (loreTrigger) {
+            const tooltip = loreTrigger.querySelector('.lore-tooltip, .tutorial-tooltip');
             if (visibleTooltip && visibleTooltip !== tooltip) visibleTooltip.classList.remove('visible');
             if (tooltip) tooltip.classList.toggle('visible');
         } else if (visibleTooltip && !wasClickInsideTooltip) {

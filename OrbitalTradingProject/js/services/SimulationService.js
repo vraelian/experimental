@@ -1,5 +1,7 @@
+// js/services/SimulationService.js
 import { CONFIG } from '../data/config.js';
-import { SHIPS, COMMODITIES, MARKETS, RANDOM_EVENTS, AGE_EVENTS, DATE_CONFIG, PERKS } from '../data/gamedata.js';
+import { SHIPS, COMMODITIES, MARKETS, RANDOM_EVENTS, AGE_EVENTS, PERKS } from '../data/gamedata.js';
+import { DATE_CONFIG } from '../data/dateConfig.js';
 import { calculateInventoryUsed, formatCredits } from '../utils.js';
 
 export class SimulationService {
@@ -99,6 +101,23 @@ export class SimulationService {
             this.setView('market-view');
         });
     }
+
+    _checkForRandomEvent(destinationId) {
+        if (Math.random() > CONFIG.RANDOM_EVENT_CHANCE) return false;
+
+        const activeShip = this._getActiveShip();
+        const validEvents = RANDOM_EVENTS.filter(event => 
+            event.precondition(this.gameState.getState(), activeShip, this._getActiveInventory.bind(this))
+        );
+
+        if (validEvents.length === 0) return false;
+
+        const event = validEvents[Math.floor(Math.random() * validEvents.length)];
+        this.gameState.setState({ pendingTravel: { destinationId } });
+        this.uiManager.showRandomEventModal(event, (eventId, choiceIndex) => this._resolveEventChoice(eventId, choiceIndex));
+        return true;
+    }
+    // ... (The rest of SimulationService.js remains the same)
 
     // --- Item & Ship Transactions ---
     buyItem(goodId, quantity) {
@@ -333,22 +352,6 @@ export class SimulationService {
             });
         });
         this._recordPriceHistory();
-    }
-    
-    _checkForRandomEvent(destinationId) {
-        if (Math.random() > CONFIG.RANDOM_EVENT_CHANCE) return false;
-
-        const activeShip = this._getActiveShip();
-        const validEvents = RANDOM_EVENTS.filter(event => 
-            event.precondition(this.gameState.getState(), activeShip, this._getActiveInventory.bind(this))
-        );
-
-        if (validEvents.length === 0) return false;
-
-        const event = validEvents[Math.floor(Math.random() * validEvents.length)];
-        this.gameState.setState({ pendingTravel: { destinationId } });
-        this.uiManager.showRandomEventModal(event, (eventId, choiceIndex) => this._resolveEventChoice(eventId, choiceIndex));
-        return true;
     }
     
     _resolveEventChoice(eventId, choiceIndex) {

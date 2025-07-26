@@ -7,7 +7,7 @@ export class UIManager {
         this.isMobile = window.innerWidth <= 768;
         this.modalQueue = [];
         this.activeGraphAnchor = null;
-        this.cacheDOM();
+        this._cacheDOM();
     }
 
     _cacheDOM() {
@@ -158,33 +158,33 @@ export class UIManager {
     }
 
     renderActiveView(gameState) {
-        const views = [this.cache.marketView, this.cache.travelView, this.cache.starportView];
-        views.forEach(view => view.classList.remove('active'));
+        const views = ['market-view', 'travel-view', 'starport-view'];
+        views.forEach(viewId => {
+            const el = document.getElementById(viewId);
+            if (el) el.style.display = 'none';
+        });
 
-        const viewKey = gameState.currentView;
-        const viewElement = document.getElementById(viewKey);
-        
+        const viewElement = document.getElementById(gameState.currentView);
         if (viewElement) {
-            viewElement.classList.add('active');
-            if (viewKey === 'market-view') this.renderMarketView(gameState);
-            if (viewKey === 'travel-view') this.renderTravelView(gameState);
-            if (viewKey === 'starport-view') this.renderStarportView(gameState);
+            viewElement.style.display = 'block';
+            if (gameState.currentView === 'market-view') this.renderMarketView(gameState);
+            if (gameState.currentView === 'travel-view') this.renderTravelView(gameState);
+            if (gameState.currentView === 'starport-view') this.renderStarportView(gameState);
         }
     }
 
     renderMarketView(gameState) {
-        const { player, market, currentLocationId, intel } = gameState;
+        const { player, market, currentLocationId } = gameState;
         const availableCommodities = COMMODITIES.filter(c => c.unlockLevel <= player.unlockedCommodityLevel);
         const fragment = document.createDocumentFragment();
 
         availableCommodities.forEach(good => {
             const clone = this.cache.marketItemTemplate.content.cloneNode(true);
-            const container = clone.querySelector('.item-card-container > div > div'); // Adjust selector for nested divs
-            container.classList.add(good.styleClass);
+            const container = clone.querySelector('.item-card-container');
+            container.querySelector('.border').classList.add(good.styleClass);
             
             const playerItem = player.inventories[player.activeShipId][good.id];
             
-            // --- Populate common elements for mobile and desktop ---
             this._populateMarketItem(clone, good, playerItem, gameState);
             
             fragment.appendChild(clone);
@@ -199,7 +199,7 @@ export class UIManager {
     }
     
     _populateMarketItem(clone, good, playerItem, gameState) {
-        const { currentLocationId, market, player } = gameState;
+        const { currentLocationId, market } = gameState;
         
         const price = this.getItemPrice(gameState, good.id, false);
         const sellPrice = this.getItemPrice(gameState, good.id, true);
@@ -207,49 +207,43 @@ export class UIManager {
         const marketStock = market.inventory[currentLocationId][good.id];
         const currentLocation = MARKETS.find(m => m.id === currentLocationId);
         
-        // Tooltip for special demand
         const isSpecialDemand = currentLocation.specialDemand && currentLocation.specialDemand[good.id];
         const nameTooltip = isSpecialDemand ? currentLocation.specialDemand[good.id].lore : good.lore;
 
-        // Player inventory display
         const playerInvDisplay = playerItem && playerItem.quantity > 0 ? ` <span class='text-cyan-300'>(${playerItem.quantity})</span>` : '';
         const graphIcon = `<span class="graph-icon" data-action="show-price-graph" data-good-id="${good.id}">📈</span>`;
 
-        // --- Desktop and Mobile Specific ---
         const setupView = (viewPrefix = '') => {
             const nameEl = clone.querySelector(`[data-name${viewPrefix}]`);
             const priceEl = clone.querySelector(`[data-price${viewPrefix}]`);
             const availabilityEl = clone.querySelector(`[data-availability${viewPrefix}]`);
             const indicatorsEl = clone.querySelector(`[data-indicators${viewPrefix}]`);
-            const qtyInputEl = clone.querySelector(`[data-qty-input${viewPrefix}]`);
             
             nameEl.innerHTML = `${good.name}${playerInvDisplay}`;
             nameEl.setAttribute('data-tooltip', nameTooltip);
             priceEl.innerHTML = formatCredits(price);
             if(availabilityEl) availabilityEl.innerHTML = `Avail: ${marketStock.quantity} ${graphIcon}`;
 
-            // Indicators
             if (indicatorsEl) {
                 const { marketIndicatorHtml, plIndicatorHtml } = this._getIndicatorHtml(price, sellPrice, galacticAvg, playerItem, viewPrefix === '-mobile');
                 indicatorsEl.innerHTML = marketIndicatorHtml + plIndicatorHtml;
             }
 
-            // Controls
             clone.querySelectorAll(`button, input`).forEach(ctrl => {
                 ctrl.dataset.goodId = good.id;
                 if(ctrl.dataset.action === 'buy' || ctrl.dataset.action === 'set-max-buy') {
                     if (isSpecialDemand) ctrl.disabled = true;
                 }
             });
+            const qtyInputEl = clone.querySelector(`[data-qty-input${viewPrefix}]`);
             if(qtyInputEl) qtyInputEl.id = `qty-${good.id}${viewPrefix}`;
         };
 
-        setupView(''); // Desktop
-        setupView('-mobile'); // Mobile
+        setupView('');
+        setupView('-mobile');
     }
 
     _getIndicatorHtml(price, sellPrice, galacticAvg, playerItem, isMobile) {
-        // Market Indicator
         const marketDiff = price - galacticAvg;
         const marketPct = galacticAvg > 0 ? Math.round((marketDiff / galacticAvg) * 100) : 0;
         const marketSign = marketPct > 0 ? '+' : '';
@@ -260,7 +254,6 @@ export class UIManager {
             ? `<div class="flex items-center ${marketColor}"><span>MKT: ${marketSign}${marketPct}%</span> ${marketArrowSVG}</div>`
             : `<div class="flex items-center gap-2"><div class="market-indicator-stacked ${marketColor}"><span class="text-xs opacity-80">MKT</span><span>${marketSign}${marketPct}%</span></div>${marketArrowSVG}</div>`;
         
-        // P/L Indicator
         let plIndicatorHtml = '';
         if (playerItem && playerItem.avgCost > 0) {
             const spreadPerUnit = sellPrice - playerItem.avgCost;
@@ -295,7 +288,7 @@ export class UIManager {
         let price = gameState.market.prices[gameState.currentLocationId][goodId];
         const market = MARKETS.find(m => m.id === gameState.currentLocationId);
         if (isSelling && market.specialDemand && market.specialDemand[goodId]) {
-            price *= market.specialDemand[good.id].bonus;
+            price *= market.specialDemand[goodId].bonus;
         }
         const intel = gameState.intel.active;
         if (intel && intel.targetMarketId === gameState.currentLocationId && intel.commodityId === goodId) {
@@ -320,10 +313,8 @@ export class UIManager {
     renderStationServices(gameState) {
         const { player, currentLocationId } = gameState;
         
-        // --- Credits ---
         this.cache.servicesCreditMirror.innerHTML = `<span class="text-cyan-400">⌬ </span><span class="font-bold text-cyan-300 ml-auto">${formatCredits(player.credits, false)}</span>`;
 
-        // --- Debt & Loans ---
         this.cache.debtContainer.innerHTML = '';
         if (player.debt > 0) {
             let garnishmentTimerHtml = '';
@@ -335,7 +326,7 @@ export class UIManager {
             }
             this.cache.debtContainer.innerHTML = `
                <h4 class="font-orbitron text-xl mb-2">Debt</h4>
-               <button id="pay-debt-btn" class="btn w-full py-3 bg-red-800/80 hover:bg-red-700/80 border-red-500" ${player.credits >= player.debt ? '' : 'disabled'}>
+               <button data-action="pay-debt" class="btn w-full py-3 bg-red-800/80 hover:bg-red-700/80 border-red-500" ${player.credits >= player.debt ? '' : 'disabled'}>
                    Pay Off ${formatCredits(player.debt, false)}
                </button>
                ${garnishmentTimerHtml}
@@ -352,14 +343,13 @@ export class UIManager {
                 { key: 'dynamic', ...dynamicLoanData }
             ].map((loan) => {
                 const tooltipText = `Fee: ${formatCredits(loan.fee, false)}\nInterest: ${formatCredits(loan.interest, false)} / 7d`;
-                return `<button class="btn btn-loan w-full p-2 mt-2 loan-btn-tooltip" data-loan-key="${loan.key}" ${player.credits < loan.fee ? 'disabled' : ''} data-tooltip="${tooltipText}" data-loan-details='${JSON.stringify(loan)}'>
+                return `<button class="btn btn-loan w-full p-2 mt-2 loan-btn-tooltip" data-action="take-loan" data-loan-details='${JSON.stringify(loan)}' ${player.credits < loan.fee ? 'disabled' : ''} data-tooltip="${tooltipText}">
                             <span class="font-orbitron text-cyan-300">⌬ ${formatCredits(loan.amount, false)}</span>
                         </button>`;
             }).join('');
             this.cache.debtContainer.innerHTML += `<div class="flex justify-center gap-4 w-full">${loanButtonsHtml}</div>`;
        }
 
-        // --- Fuel & Repairs ---
         const currentMarket = MARKETS.find(m => m.id === currentLocationId);
         const ship = SHIPS[player.activeShipId];
         let fuelPrice = currentMarket.fuelPrice / 4;
@@ -396,7 +386,7 @@ export class UIManager {
         const alwaysHasIntel = ['loc_exchange', 'loc_kepler'].includes(currentLocationId);
         if ((alwaysHasIntel || intel.available[currentLocationId]) && !intel.active && player.credits >= CONFIG.INTEL_MIN_CREDITS) {
             const intelCost = Math.floor(player.credits * CONFIG.INTEL_COST_PERCENTAGE);
-            this.cache.intelPurchaseContainer.innerHTML = `<button id="purchase-intel-btn" class="btn btn-intel" data-cost="${intelCost}">Purchase Intel (${formatCredits(intelCost)})</button>`;
+            this.cache.intelPurchaseContainer.innerHTML = `<button data-action="purchase-intel" class="btn btn-intel" data-cost="${intelCost}">Purchase Intel (${formatCredits(intelCost)})</button>`;
         }
     }
 
