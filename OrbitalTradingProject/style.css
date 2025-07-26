@@ -768,10 +768,6 @@ body {
     background-color: #32405a;
     color: #e0f0ff;
 }
-/* --- View Container --- */
 .view {
     display: none;
-}
-.view.active {
-    display: block;
 }
