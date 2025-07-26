@@ -1,5 +1,6 @@
 import { CONFIG } from '../data/config.js';
-import { SHIPS, COMMODITIES, MARKETS } from '../data/gamedata.js';
+import { SHIPS, COMMODITIES, MARKETS, AGE_EVENTS, DATE_CONFIG } from '../data/gamedata.js';
+import { skewedRandom } from '../utils.js';
 
 function procedurallyGenerateTravelData(markets) {
     const travelData = {};
@@ -23,47 +24,39 @@ function procedurallyGenerateTravelData(markets) {
     return travelData;
 }
 
-function skewedRandom(min, max) {
-    return min + Math.floor((max - min + 1) * Math.random());
-}
-
-function getTierAvailability(tier) {
-    const tiers = {
-        1: { min: 6, max: 240 }, 2: { min: 4, max: 200 }, 3: { min: 3, max: 120 },
-        4: { min: 2, max: 40 }, 5: { min: 1, max: 20 }, 6: { min: 0, max: 20 }, 7: { min: 0, max: 10 }
-    };
-    return tiers[tier] || { min: 0, max: 5 };
-}
-
-class GameState {
+export class GameState {
     constructor() {
         this.state = {};
         this.subscribers = [];
         this.TRAVEL_DATA = procedurallyGenerateTravelData(MARKETS);
     }
 
+    // --- Observer Pattern ---
     subscribe(callback) {
         this.subscribers.push(callback);
     }
 
     _notify() {
-        this.subscribers.forEach(callback => callback(this.state));
+        // Deep copy state to prevent direct mutation by subscribers
+        this.subscribers.forEach(callback => callback(JSON.parse(JSON.stringify(this))));
     }
 
-    setState(newState) {
-        this.state = { ...this.state, ...newState };
+    // --- State Management ---
+    setState(partialState) {
+        Object.assign(this, partialState);
         this._notify();
         this.saveGame();
     }
-
+    
     getState() {
-        return this.state;
+        return JSON.parse(JSON.stringify(this));
     }
 
+    // --- Save/Load ---
     saveGame() {
         try {
-            const stateToSave = { ...this.state };
-            delete stateToSave.TRAVEL_DATA;
+            const stateToSave = { ...this };
+            delete stateToSave.subscribers; // Don't save subscribers
             localStorage.setItem(CONFIG.SAVE_KEY, JSON.stringify(stateToSave));
         } catch (error) {
             console.error("Error saving game state:", error);
@@ -75,70 +68,138 @@ class GameState {
             const serializedState = localStorage.getItem(CONFIG.SAVE_KEY);
             if (serializedState === null) return false;
             
-            this.state = JSON.parse(serializedState);
-            this.state.TRAVEL_DATA = this.TRAVEL_DATA;
+            const loadedState = JSON.parse(serializedState);
+            Object.assign(this, loadedState);
+
+            // Re-initialize non-serializable parts
+            this.TRAVEL_DATA = procedurallyGenerateTravelData(MARKETS);
+            
             this._notify();
             return true;
         } catch (error) {
-            console.warn("Could not parse save data.", error);
+            console.warn("Could not parse save data. Starting new game.", error);
             localStorage.removeItem(CONFIG.SAVE_KEY);
             return false;
         }
     }
 
+    // --- Game Initialization ---
     startNewGame(playerName) {
         const initialState = {
-            TRAVEL_DATA: this.TRAVEL_DATA,
-            day: 1, lastInterestChargeDay: 1, lastMarketUpdateDay: 1, currentLocationId: 'loc_mars', currentView: 'travel-view', isGameOver: false,
+            day: 1,
+            lastInterestChargeDay: 1,
+            lastMarketUpdateDay: 1,
+            currentLocationId: 'loc_mars',
+            currentView: 'travel-view',
+            isGameOver: false,
+            popupsDisabled: false,
+            pendingTravel: null,
             player: {
-                name: playerName, playerTitle: 'Captain', playerAge: 24, credits: CONFIG.STARTING_CREDITS, debt: CONFIG.STARTING_DEBT, weeklyInterestAmount: CONFIG.STARTING_DEBT_INTEREST,
-                starportUnlocked: false, unlockedCommodityLevel: 1, unlockedLocationIds: ['loc_earth', 'loc_luna', 'loc_mars', 'loc_venus', 'loc_belt', 'loc_saturn'],
-                activePerks: {}, seenEvents: [], activeShipId: 'starter', ownedShipIds: ['starter'],
-                shipStates: {}, inventories: {}
+                name: playerName,
+                playerTitle: 'Captain',
+                playerAge: 24,
+                lastBirthdayYear: DATE_CONFIG.START_YEAR,
+                birthdayProfitBonus: 0,
+                credits: CONFIG.STARTING_CREDITS,
+                debt: CONFIG.STARTING_DEBT,
+                weeklyInterestAmount: CONFIG.STARTING_DEBT_INTEREST,
+                loanStartDate: null,
+                seenGarnishmentWarning: false,
+                initialDebtPaidOff: false,
+                starportUnlocked: false,
+                unlockedCommodityLevel: 1,
+                unlockedLocationIds: ['loc_earth', 'loc_luna', 'loc_mars', 'loc_venus', 'loc_belt', 'loc_saturn'],
+                seenCommodityMilestones: [],
+                financeHistory: [{ value: CONFIG.STARTING_CREDITS, type: 'start', amount: 0 }],
+                activePerks: {},
+                seenEvents: [],
+                activeShipId: 'starter',
+                ownedShipIds: ['starter'],
+                shipStates: {},
+                inventories: {}
             },
-            market: { prices: {}, inventory: {}, galacticAverages: {} }
+            market: {
+                prices: {},
+                inventory: {},
+                galacticAverages: {},
+                priceHistory: {},
+            },
+            intel: {
+                active: null,
+                available: {}
+            },
+            tutorials: {
+                navigation: false,
+                market: false,
+                maintenance: false,
+                success: false,
+                starport: false
+            }
         };
 
+        // Initialize ship states and inventories
         initialState.player.ownedShipIds.forEach(shipId => {
             const shipData = SHIPS[shipId];
-            initialState.player.shipStates[shipId] = { health: shipData.maxHealth, fuel: shipData.maxFuel };
+            initialState.player.shipStates[shipId] = { 
+                health: shipData.maxHealth, 
+                fuel: shipData.maxFuel,
+                hullAlerts: { one: false, two: false }
+            };
             initialState.player.inventories[shipId] = {};
             COMMODITIES.forEach(c => {
                 initialState.player.inventories[shipId][c.id] = { quantity: 0, avgCost: 0 };
             });
         });
-        
-        MARKETS.forEach(m => {
-            initialState.market.inventory[m.id] = {};
+
+        // Initialize market data
+        MARKETS.forEach(market => {
+            initialState.market.priceHistory[market.id] = {};
+            initialState.intel.available[market.id] = (Math.random() < CONFIG.INTEL_CHANCE);
+            initialState.market.inventory[market.id] = {};
             COMMODITIES.forEach(c => {
-                const avail = getTierAvailability(c.tier);
-                initialState.market.inventory[m.id][c.id] = { quantity: skewedRandom(avail.min, avail.max) };
+                initialState.market.priceHistory[market.id][c.id] = [];
+                const avail = this._getTierAvailability(c.tier);
+                let quantity = skewedRandom(avail.min, avail.max);
+                if (market.modifiers[c.id] && market.modifiers[c.id] > 1.0) quantity = Math.floor(quantity * 1.5);
+                if (market.specialDemand && market.specialDemand[c.id]) quantity = 0;
+                initialState.market.inventory[market.id][c.id] = { quantity: Math.max(0, quantity) };
             });
         });
         
-        this.state = initialState;
+        Object.assign(this, initialState);
         this._calculateGalacticAverages();
         this._seedInitialMarketPrices();
-        this.setState(this.state);
+        this.setState({}); // Notify subscribers and save
     }
-    
+
+    _getTierAvailability(tier) {
+        switch (tier) {
+            case 1: return { min: 6, max: 240 };
+            case 2: return { min: 4, max: 200 };
+            case 3: return { min: 3, max: 120 };
+            case 4: return { min: 2, max: 40 };
+            case 5: return { min: 1, max: 20 };
+            case 6: return { min: 0, max: 20 };
+            case 7: return { min: 0, max: 10 };
+            default: return { min: 0, max: 5 };
+        }
+    }
+
     _calculateGalacticAverages() {
-        this.state.market.galacticAverages = {};
+        this.market.galacticAverages = {};
         COMMODITIES.forEach(good => {
-            this.state.market.galacticAverages[good.id] = (good.basePriceRange[0] + good.basePriceRange[1]) / 2;
+            this.market.galacticAverages[good.id] = (good.basePriceRange[0] + good.basePriceRange[1]) / 2;
         });
     }
 
     _seedInitialMarketPrices() {
         MARKETS.forEach(location => {
-            this.state.market.prices[location.id] = {};
+            this.market.prices[location.id] = {};
             COMMODITIES.forEach(good => {
-                let price = this.state.market.galacticAverages[good.id] * (1 + (Math.random() - 0.5) * 0.5);
+                let price = this.market.galacticAverages[good.id] * (1 + (Math.random() - 0.5) * 0.5);
                 price *= (location.modifiers[good.id] || 1.0);
-                this.state.market.prices[location.id][good.id] = Math.max(1, Math.round(price));
+                this.market.prices[location.id][good.id] = Math.max(1, Math.round(price));
             });
         });
     }
 }
-
-export const gameState = new GameState();

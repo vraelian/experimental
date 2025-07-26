@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Orbital Trading v18.9</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;700&family=Orbitron:wght@500;700&family=Roboto+Mono:wght@400;700&family=Aldrich&display=swap" rel="stylesheet"> 
+    <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;700&family=Orbitron:wght@500;700&family=Roboto+Mono:wght@400;700&family=Aldrich&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./style.css?v=18.9">
 </head>
 <body class="p-4 md:p-8">
@@ -98,118 +98,141 @@
         </div>
 
         <div id="finance-panel" class="panel-border border border-slate-700 bg-black/30 p-4 rounded-lg mb-6 grid items-center text-center">
-        </div>
+            </div>
 
         <div id="main-content">
-            <div class="view" id="view-market">
-                <div id="market-view">
-                    <h3 class="text-2xl font-orbitron text-center mb-4">Market</h3>
-                    <div id="market-prices" class="grid grid-cols-1 lg:grid-cols-2 gap-4"></div>
-                    <template id="market-item-template">
-    <div class="item-card-container">
-        <div class="bg-black/20 p-4 rounded-lg flex justify-between items-center border transition-colors shadow-md h-32">
-            <div class="flex flex-col h-full justify-between flex-grow self-start pt-1">
-                <div>
-                     <p class="font-bold commodity-name text-outline commodity-name-tooltip" data-commodity-name></p>
-                     <p class="font-roboto-mono text-xl font-bold text-left pt-2 price-text text-outline flex items-center" data-price></p>
-                </div>
-                <div class="text-sm self-start pb-1 text-outline flex items-center gap-3">
-                    <span data-availability></span>
-                    <div class="flex items-center gap-2" data-indicators></div>
-                </div>
-            </div>
-            <div class="flex items-center space-x-2">
-                <div class="flex flex-col items-center">
-                    <div class="flex flex-col space-y-1">
-                         <button class="btn item-btn" data-action="buy">Buy</button>
-                         <button class="btn btn-sm item-btn" data-action="set-max-buy">Max</button>
-                     </div>
-                </div>
-                <div class="flex flex-col items-center">
-                      <button class="qty-btn" data-action="increment">+</button>
-                     <input type="number" class="qty-input p-2 my-1" value="1" min="1" data-qty-input>
-                    <button class="qty-btn" data-action="decrement">-</button>
-                 </div>
-                 <div class="flex flex-col items-center">
-                    <div class="flex flex-col space-y-1">
-                        <button class="btn item-btn" data-action="sell">Sell</button>
-                        <button class="btn btn-sm item-btn" data-action="set-max-sell">Max</button>
-                     </div>
-                </div>
-             </div>
-          </div>
-    </div>
-</template>
-                    <div id="intel-display" class="hidden p-3 rounded-lg my-4 text-center"></div>
-                    <div id="intel-purchase-container" class="mt-4 flex justify-center items-center"></div>
-                    <div id="player-inventory" class="mt-8 pt-6 border-t-2 border-cyan-900/50">
-                        <h3 class="text-2xl font-orbitron text-center mb-4">Active Ship Cargo Manifest</h3>
-                        <div id="inventory-list"></div>
+            <div id="market-view" class="view">
+                <h3 class="text-2xl font-orbitron text-center mb-4">Market</h3>
+                <div id="market-prices" class="grid grid-cols-1 lg:grid-cols-2 gap-4"></div>
+                <template id="market-item-template">
+                    <div class="item-card-container">
+                        <div class="bg-black/20 p-4 rounded-lg items-center border transition-colors shadow-md h-32 hidden md:flex justify-between">
+                            <div class="flex flex-col h-full justify-between flex-grow self-start pt-1">
+                                <div>
+                                     <p class="font-bold commodity-name text-outline commodity-name-tooltip" data-name></p>
+                                     <p class="font-roboto-mono text-xl font-bold text-left pt-2 price-text text-outline flex items-center" data-price></p>
+                                </div>
+                                <div class="text-sm self-start pb-1 text-outline flex items-center gap-3">
+                                    <span data-availability></span>
+                                    <div class="flex items-center gap-2" data-indicators></div>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <div class="flex flex-col items-center">
+                                    <div class="flex flex-col space-y-1">
+                                         <button class="btn item-btn" data-action="buy">Buy</button>
+                                         <button class="btn btn-sm item-btn" data-action="set-max-buy">Max</button>
+                                     </div>
+                                </div>
+                                <div class="flex flex-col items-center">
+                                      <button class="qty-btn" data-action="increment">+</button>
+                                     <input type="number" class="qty-input p-2 my-1" value="1" min="1" data-qty-input>
+                                    <button class="qty-btn" data-action="decrement">-</button>
+                                 </div>
+                                 <div class="flex flex-col items-center">
+                                    <div class="flex flex-col space-y-1">
+                                        <button class="btn item-btn" data-action="sell">Sell</button>
+                                        <button class="btn btn-sm item-btn" data-action="set-max-sell">Max</button>
+                                     </div>
+                                </div>
+                             </div>
+                        </div>
+                        <div class="bg-black/20 p-4 rounded-lg flex flex-col border shadow-md md:hidden">
+                             <div class="flex justify-between items-start w-full mb-2">
+                                <div class="flex-grow">
+                                    <p class="font-bold commodity-name text-outline commodity-name-tooltip" data-name-mobile></p>
+                                    <p class="font-roboto-mono text-xl font-bold text-left pt-2 price-text text-outline flex items-center" data-price-mobile></p>
+                                </div>
+                                <div class="text-right text-sm flex-shrink-0 ml-2 text-outline" data-availability-mobile>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-end mt-2">
+                                <div class="flex items-center space-x-3 text-sm text-outline" data-indicators-mobile>
+                                </div>
+                                <div class="mobile-controls-wrapper">
+                                    <div class="flex flex-col items-center space-y-1">
+                                         <button class="btn item-btn" data-action="buy">Buy</button>
+                                         <button class="btn btn-sm item-btn" data-action="set-max-buy">Max</button>
+                                     </div>
+                                    <div class="flex flex-col items-center space-y-1">
+                                         <button class="qty-btn" data-action="increment">+</button>
+                                         <input type="number" class="qty-input" value="1" min="1" data-qty-input-mobile>
+                                         <button class="qty-btn" data-action="decrement">-</button>
+                                     </div>
+                                    <div class="flex flex-col items-center space-y-1">
+                                         <button class="btn item-btn" data-action="sell">Sell</button>
+                                          <button class="btn btn-sm item-btn" data-action="set-max-sell">Max</button>
+                                     </div>
+                                 </div>
+                            </div>
+                        </div>
                     </div>
-                    <div id="station-services" class="mt-8 pt-6 border-t-2 border-cyan-900/50">
-                        <div class="text-center mb-4">
-                            <h3 class="text-2xl font-orbitron">Station Services</h3>
-                            <div id="services-credit-mirror" class="text-lg text-cyan-300"></div>
+                </template>
+                <div id="intel-display" class="hidden p-3 rounded-lg my-4 text-center"></div>
+                <div id="intel-purchase-container" class="mt-4 flex justify-center items-center"></div>
+                <div id="player-inventory" class="mt-8 pt-6 border-t-2 border-cyan-900/50">
+                    <h3 class="text-2xl font-orbitron text-center mb-4">Active Ship Cargo Manifest</h3>
+                    <div id="inventory-list"></div>
+                </div>
+                <div id="station-services" class="mt-8 pt-6 border-t-2 border-cyan-900/50">
+                    <div class="text-center mb-4">
+                        <h3 class="text-2xl font-orbitron">Station Services</h3>
+                        <div id="services-credit-mirror" class="text-lg text-cyan-300"></div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+                        <div id="refuel-container" class="bg-black/20 p-4 rounded-lg text-center shadow-lg panel-border border border-slate-700">
+                            <h4 class="font-orbitron text-xl mb-2">Refueling</h4>
+                            <p class="mb-3">Price: <span id="fuel-price" class="font-bold text-cyan-300"></span> / 2.5 units</p>
+                            <button id="refuel-btn" class="btn btn-green w-full py-3">Hold to Refuel</button>
+                            <div class="w-full hud-stat-bar mt-2"><div id="refuel-feedback-bar" class="bg-sky-400"></div></div>
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-                            <div id="refuel-container" class="bg-black/20 p-4 rounded-lg text-center shadow-lg panel-border border border-slate-700">
-                                <h4 class="font-orbitron text-xl mb-2">Refueling</h4>
-                                <p class="mb-3">Price: <span id="fuel-price" class="font-bold text-cyan-300"></span> / 2.5 units</p>
-                                <button id="refuel-btn" class="btn btn-green w-full py-3">Hold to Refuel</button>
-                                <div class="w-full hud-stat-bar mt-2"><div id="refuel-feedback-bar" class="bg-sky-400"></div></div>
-                            </div>
-                            <div id="repair-container" class="bg-black/20 p-4 rounded-lg text-center shadow-lg panel-border border border-slate-700">
-                                <h4 class="font-orbitron text-xl mb-2">Ship Maintenance</h4>
-                                <p class="mb-3">Price: <span id="repair-cost" class="font-bold text-cyan-300"></span> / 10% repair</p>
-                                <button id="repair-btn" class="btn btn-blue w-full py-3">Hold to Repair</button>
-                                <div class="w-full hud-stat-bar mt-2"><div id="repair-feedback-bar" class="bg-green-400"></div></div>
-                            </div>
-                            <div id="debt-container" class="bg-black/20 p-4 rounded-lg flex flex-col items-center justify-center space-y-2 shadow-lg panel-border border border-slate-700"></div>
+                        <div id="repair-container" class="bg-black/20 p-4 rounded-lg text-center shadow-lg panel-border border border-slate-700">
+                            <h4 class="font-orbitron text-xl mb-2">Ship Maintenance</h4>
+                            <p class="mb-3">Price: <span id="repair-cost" class="font-bold text-cyan-300"></span> / 10% repair</p>
+                            <button id="repair-btn" class="btn btn-blue w-full py-3">Hold to Repair</button>
+                            <div class="w-full hud-stat-bar mt-2"><div id="repair-feedback-bar" class="bg-green-400"></div></div>
                         </div>
+                        <div id="debt-container" class="bg-black/20 p-4 rounded-lg flex flex-col items-center justify-center space-y-2 shadow-lg panel-border border border-slate-700"></div>
                     </div>
                 </div>
             </div>
 
-            <div class="view" id="view-travel">
-                <div id="travel-view">
-                    <div id="locations-grid" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
-                    <hr id="nav-divider">
-                    <div id="bottom-nav-buttons">
-                        <div id="lore-button-container" class="lore-container">
-                            The story so far...
-                            <div class="lore-tooltip">
-                                <p>The year 2140 is the result of a single, massive corporate takeover. A century ago, the "Ad Astra Initiative" released advanced technology to all of humanity, a gift from the new Human-AI Alliance on Earth designed to kickstart our expansion into the stars. It was a promise of a new beginning, an open-source key to the solar system, ensuring the survival of all Earth life, both organic and synthetic.</p><br><p>But a gift to everyone is a business opportunity for the few. The hyper-corporations, already positioned in space, immediately patented the most efficient manufacturing processes and proprietary components for this new technology. This maneuver ensured that while anyone could build a Folded-Space Drive, only the corporations could supply the high-performance parts needed to make it truly effective, creating a system-wide technological dependency that persists to this day. This technological monopoly created the "Drive-Divide," the central pillar of the new class system. Nearly all ships run on older, less efficient hardware. Very few ships employ these coveted Folded-Space Drives.</p><br><p>The major hubs beyond Earth are sovereign, corporate-run territories where law is policy and your rights are listed in an employment contract. These scattered colonies are fierce rivals, engaged in constant economic warfare, all propped up by the interstellar supply lines maintained by the Merchant's Guild. For them, you are just another cog in the great machine of commerce.</p><br><p>In a system owned by corporations, possessing your own ship is the only true form of freedom. Your massive starting loan is the price of entry into the game, a necessary burden for anyone trying to escape the life of a corporate wage-slave. Every credit earned, every successful trade, is a bet on your own skill and a step toward true sovereignty on the razor's edge of a cargo manifest.</p>
-                            </div>
+            <div id="travel-view" class="view">
+                <div id="locations-grid" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+                <hr id="nav-divider">
+                <div id="bottom-nav-buttons">
+                    <div id="lore-button-container" class="lore-container">
+                        The story so far...
+                        <div class="lore-tooltip">
+                            <p>The year 2140 is the result of a single, massive corporate takeover. A century ago, the "Ad Astra Initiative" released advanced technology to all of humanity, a gift from the new Human-AI Alliance on Earth designed to kickstart our expansion into the stars. It was a promise of a new beginning, an open-source key to the solar system, ensuring the survival of all Earth life, both organic and synthetic.</p><br><p>But a gift to everyone is a business opportunity for the few. The hyper-corporations, already positioned in space, immediately patented the most efficient manufacturing processes and proprietary components for this new technology. This maneuver ensured that while anyone could build a Folded-Space Drive, only the corporations could supply the high-performance parts needed to make it truly effective, creating a system-wide technological dependency that persists to this day. This technological monopoly created the "Drive-Divide," the central pillar of the new class system. Nearly all ships run on older, less efficient hardware. Very few ships employ these coveted Folded-Space Drives.</p><br><p>The major hubs beyond Earth are sovereign, corporate-run territories where law is policy and your rights are listed in an employment contract. These scattered colonies are fierce rivals, engaged in constant economic warfare, all propped up by the interstellar supply lines maintained by the Merchant's Guild. For them, you are just another cog in the great machine of commerce.</p><br><p>In a system owned by corporations, possessing your own ship is the only true form of freedom. Your massive starting loan is the price of entry into the game, a necessary burden for anyone trying to escape the life of a corporate wage-slave. Every credit earned, every successful trade, is a bet on your own skill and a step toward true sovereignty on the razor's edge of a cargo manifest.</p>
                         </div>
-                        <a id="feedback-button-container" href="https://docs.google.com/forms/d/e/1FAIpQLSeVqjUEC6nsZlxTQ9-vzz0_fHO0ng8w0AueZaGzkHPoLJIBDA/viewform?usp=header" target="_blank">
-                            <span class="hl">Submit Feedback</span>
-                        </a>
-                        <div id="tutorial-button-container" class="tutorial-container">
-                            Tutorial
-                            <div class="tutorial-tooltip">
-                                <p>This is a placeholder for the tutorial information.</p>
-                            </div>
+                    </div>
+                    <a id="feedback-button-container" href="https://docs.google.com/forms/d/e/1FAIpQLSeVqjUEC6nsZlxTQ9-vzz0_fHO0ng8w0AueZaGzkHPoLJIBDA/viewform?usp=header" target="_blank">
+                        <span class="hl">Submit Feedback</span>
+                    </a>
+                    <div id="tutorial-button-container" class="tutorial-container">
+                        Tutorial
+                        <div class="tutorial-tooltip">
+                            <p>This is a placeholder for the tutorial information.</p>
                         </div>
                     </div>
                 </div>
             </div>
             
-            <div class="view" id="view-starport">
-                <div id="starport-view">
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-8 relative">
-                        <div id="starport-shipyard-panel">
-                            <h2 class="text-3xl font-orbitron text-cyan-300 mb-4 text-center">Shipyard</h2>
-                            <div id="starport-shipyard" class="starport-panel space-y-4"></div>
-                        </div>
-    
-                        <div class="w-full my-4 border-t-2 border-slate-600 lg:hidden"></div>
-    
-                        <div class="absolute left-1/2 top-0 h-full w-px bg-slate-600 hidden lg:block"></div>
-                        
-                        <div id="starport-hangar-panel">
-                            <h2 class="text-3xl font-orbitron text-cyan-300 mb-4 text-center">Hangar</h2>
-                            <div id="starport-hangar" class="starport-panel space-y-4"></div>
-                        </div>
+            <div id="starport-view" class="view">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-8 relative">
+                    <div id="starport-shipyard-panel">
+                        <h2 class="text-3xl font-orbitron text-cyan-300 mb-4 text-center">Shipyard</h2>
+                        <div id="starport-shipyard" class="starport-panel space-y-4"></div>
+                    </div>
+
+                    <div class="w-full my-4 border-t-2 border-slate-600 lg:hidden"></div>
+
+                    <div class="absolute left-1/2 top-0 h-full w-px bg-slate-600 hidden lg:block"></div>
+                    
+                    <div id="starport-hangar-panel">
+                        <h2 class="text-3xl font-orbitron text-cyan-300 mb-4 text-center">Hangar</h2>
+                        <div id="starport-hangar" class="starport-panel space-y-4"></div>
                     </div>
                 </div>
             </div>
