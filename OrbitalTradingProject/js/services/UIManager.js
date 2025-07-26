@@ -28,7 +28,6 @@ export class UIManager {
             marketPrices: document.getElementById('market-prices'),
             locationsGrid: document.getElementById('locations-grid'),
             inventoryList: document.getElementById('inventory-list'),
-            marketItemTemplate: document.getElementById('market-item-template'),
             servicesCreditMirror: document.getElementById('services-credit-mirror'),
             debtContainer: document.getElementById('debt-container'),
             fuelPrice: document.getElementById('fuel-price'),
@@ -51,6 +50,9 @@ export class UIManager {
             debugToast: document.getElementById('debug-toast'),
             graphTooltip: document.getElementById('graph-tooltip'),
         };
+         window.addEventListener('resize', () => {
+            this.isMobile = window.innerWidth <= 768;
+        });
     }
 
     render(gameState) {
@@ -174,73 +176,123 @@ export class UIManager {
     }
 
     renderMarketView(gameState) {
-        const { player, market, currentLocationId } = gameState;
-        const availableCommodities = COMMODITIES.filter(c => c.unlockLevel <= player.unlockedCommodityLevel);
-        const fragment = document.createDocumentFragment();
+        const availableCommodities = COMMODITIES.filter(c => c.unlockLevel <= gameState.player.unlockedCommodityLevel);
+        
+        const marketHtml = availableCommodities.map(good => {
+            return this.isMobile ? this._getMarketItemHtmlMobile(good, gameState) : this._getMarketItemHtmlDesktop(good, gameState);
+        }).join('');
 
-        availableCommodities.forEach(good => {
-            const clone = this.cache.marketItemTemplate.content.cloneNode(true);
-            const container = clone.querySelector('.item-card-container');
-            container.querySelector('.border').classList.add(good.styleClass);
-            
-            const playerItem = player.inventories[player.activeShipId][good.id];
-            
-            this._populateMarketItem(clone, good, playerItem, gameState);
-            
-            fragment.appendChild(clone);
-        });
-
-        this.cache.marketPrices.innerHTML = '';
-        this.cache.marketPrices.appendChild(fragment);
+        this.cache.marketPrices.innerHTML = marketHtml;
 
         this.renderInventoryList(gameState);
         this.renderStationServices(gameState);
         this.renderIntel(gameState);
     }
     
-    _populateMarketItem(clone, good, playerItem, gameState) {
-        const { currentLocationId, market } = gameState;
-        
-        const price = this.getItemPrice(gameState, good.id, false);
+    _getMarketItemHtmlDesktop(good, gameState) {
+        const { player, market, currentLocationId } = gameState;
+        const playerItem = player.inventories[player.activeShipId][good.id];
+        const price = this.getItemPrice(gameState, good.id);
         const sellPrice = this.getItemPrice(gameState, good.id, true);
         const galacticAvg = market.galacticAverages[good.id];
         const marketStock = market.inventory[currentLocationId][good.id];
         const currentLocation = MARKETS.find(m => m.id === currentLocationId);
-        
         const isSpecialDemand = currentLocation.specialDemand && currentLocation.specialDemand[good.id];
-        const nameTooltip = isSpecialDemand ? currentLocation.specialDemand[good.id].lore : good.lore;
-
+        const buyDisabled = isSpecialDemand ? 'disabled' : '';
+        const nameTooltip = isSpecialDemand ? `data-tooltip="${currentLocation.specialDemand[good.id].lore}"` : `data-tooltip="${good.lore}"`;
         const playerInvDisplay = playerItem && playerItem.quantity > 0 ? ` <span class='text-cyan-300'>(${playerItem.quantity})</span>` : '';
         const graphIcon = `<span class="graph-icon" data-action="show-price-graph" data-good-id="${good.id}">📈</span>`;
+        const { marketIndicatorHtml, plIndicatorHtml } = this._getIndicatorHtml(price, sellPrice, galacticAvg, playerItem, false);
 
-        const setupView = (viewPrefix = '') => {
-            const nameEl = clone.querySelector(`[data-name${viewPrefix}]`);
-            const priceEl = clone.querySelector(`[data-price${viewPrefix}]`);
-            const availabilityEl = clone.querySelector(`[data-availability${viewPrefix}]`);
-            const indicatorsEl = clone.querySelector(`[data-indicators${viewPrefix}]`);
-            
-            nameEl.innerHTML = `${good.name}${playerInvDisplay}`;
-            nameEl.setAttribute('data-tooltip', nameTooltip);
-            priceEl.innerHTML = formatCredits(price);
-            if(availabilityEl) availabilityEl.innerHTML = `Avail: ${marketStock.quantity} ${graphIcon}`;
+        return `
+        <div class="item-card-container">
+            <div class="bg-black/20 p-4 rounded-lg flex justify-between items-center border ${good.styleClass} transition-colors shadow-md h-32">
+                <div class="flex flex-col h-full justify-between flex-grow self-start pt-1">
+                    <div>
+                         <p class="font-bold commodity-name text-outline commodity-name-tooltip" ${nameTooltip}>${good.name}${playerInvDisplay}</p>
+                         <p class="font-roboto-mono text-xl font-bold text-left pt-2 price-text text-outline flex items-center">${formatCredits(price)}</p>
+                    </div>
+                    <div class="text-sm self-start pb-1 text-outline flex items-center gap-3">
+                        <span>Avail: ${marketStock.quantity} ${graphIcon}</span>
+                        <div class="flex items-center gap-2">
+                            ${marketIndicatorHtml}
+                            ${plIndicatorHtml}
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <div class="flex flex-col items-center">
+                        <div class="flex flex-col space-y-1">
+                             <button class="btn item-btn" data-action="buy" data-good-id="${good.id}" ${buyDisabled}>Buy</button>
+                             <button class="btn btn-sm item-btn" data-action="set-max-buy" data-good-id="${good.id}" ${buyDisabled}>Max</button>
+                         </div>
+                    </div>
+                    <div class="flex flex-col items-center">
+                          <button class="qty-btn" data-action="increment" data-good-id="${good.id}">+</button>
+                         <input type="number" class="qty-input p-2 my-1" id="qty-${good.id}" data-good-id="${good.id}" value="1" min="1">
+                        <button class="qty-btn" data-action="decrement" data-good-id="${good.id}">-</button>
+                     </div>
+                     <div class="flex flex-col items-center">
+                        <div class="flex flex-col space-y-1">
+                            <button class="btn item-btn" data-action="sell" data-good-id="${good.id}">Sell</button>
+                            <button class="btn btn-sm item-btn" data-action="set-max-sell" data-good-id="${good.id}">Max</button>
+                         </div>
+                    </div>
+                 </div>
+              </div>
+        </div>`;
+    }
 
-            if (indicatorsEl) {
-                const { marketIndicatorHtml, plIndicatorHtml } = this._getIndicatorHtml(price, sellPrice, galacticAvg, playerItem, viewPrefix === '-mobile');
-                indicatorsEl.innerHTML = marketIndicatorHtml + plIndicatorHtml;
-            }
+    _getMarketItemHtmlMobile(good, gameState) {
+        const { player, market, currentLocationId } = gameState;
+        const playerItem = player.inventories[player.activeShipId][good.id];
+        const price = this.getItemPrice(gameState, good.id);
+        const sellPrice = this.getItemPrice(gameState, good.id, true);
+        const galacticAvg = market.galacticAverages[good.id];
+        const marketStock = market.inventory[currentLocationId][good.id];
+        const currentLocation = MARKETS.find(m => m.id === currentLocationId);
+        const isSpecialDemand = currentLocation.specialDemand && currentLocation.specialDemand[good.id];
+        const buyDisabled = isSpecialDemand ? 'disabled' : '';
+        const nameTooltip = isSpecialDemand ? `data-tooltip="${currentLocation.specialDemand[good.id].lore}"` : `data-tooltip="${good.lore}"`;
+        const playerInvDisplay = playerItem && playerItem.quantity > 0 ? ` <span class='text-cyan-300'>(${playerItem.quantity})</span>` : '';
+        const graphIcon = `<span class="graph-icon" data-action="show-price-graph" data-good-id="${good.id}">📈</span>`;
+        const { marketIndicatorHtml, plIndicatorHtml } = this._getIndicatorHtml(price, sellPrice, galacticAvg, playerItem, true);
 
-            clone.querySelectorAll(`button, input`).forEach(ctrl => {
-                ctrl.dataset.goodId = good.id;
-                if(ctrl.dataset.action === 'buy' || ctrl.dataset.action === 'set-max-buy') {
-                    if (isSpecialDemand) ctrl.disabled = true;
-                }
-            });
-            const qtyInputEl = clone.querySelector(`[data-qty-input${viewPrefix}]`);
-            if(qtyInputEl) qtyInputEl.id = `qty-${good.id}${viewPrefix}`;
-        };
-
-        setupView('');
-        setupView('-mobile');
+        return `
+        <div class="item-card-container">
+            <div class="bg-black/20 p-4 rounded-lg flex flex-col border ${good.styleClass} shadow-md">
+                <div class="flex justify-between items-start w-full mb-2">
+                    <div class="flex-grow">
+                        <p class="font-bold commodity-name text-outline commodity-name-tooltip" ${nameTooltip}>${good.name}${playerInvDisplay}</p>
+                        <p class="font-roboto-mono text-xl font-bold text-left pt-2 price-text text-outline flex items-center">${formatCredits(price)}</p>
+                    </div>
+                    <div class="text-right text-sm flex-shrink-0 ml-2 text-outline">
+                        Avail: ${marketStock.quantity} ${graphIcon}
+                    </div>
+                </div>
+                <div class="flex justify-between items-end mt-2">
+                     <div class="flex items-center space-x-3 text-sm text-outline">
+                        ${marketIndicatorHtml}
+                        ${plIndicatorHtml}
+                    </div>
+                    <div class="mobile-controls-wrapper">
+                        <div class="flex flex-col items-center space-y-1">
+                             <button class="btn item-btn" data-action="buy" data-good-id="${good.id}" ${buyDisabled}>Buy</button>
+                             <button class="btn btn-sm item-btn" data-action="set-max-buy" data-good-id="${good.id}" ${buyDisabled}>Max</button>
+                         </div>
+                        <div class="flex flex-col items-center space-y-1">
+                             <button class="qty-btn" data-action="increment" data-good-id="${good.id}">+</button>
+                             <input type="number" class="qty-input" id="qty-${good.id}-mobile" data-good-id="${good.id}" value="1" min="1">
+                             <button class="qty-btn" data-action="decrement" data-good-id="${good.id}">-</button>
+                         </div>
+                        <div class="flex flex-col items-center space-y-1">
+                             <button class="btn item-btn" data-action="sell" data-good-id="${good.id}">Sell</button>
+                              <button class="btn btn-sm item-btn" data-action="set-max-sell" data-good-id="${good.id}">Max</button>
+                         </div>
+                     </div>
+                </div>
+             </div>
+        </div>`;
     }
 
     _getIndicatorHtml(price, sellPrice, galacticAvg, playerItem, isMobile) {
@@ -279,9 +331,9 @@ export class UIManager {
             neutral: ''
         };
         if (direction === 'neutral') {
-             return `<svg class="indicator-arrow ${colorClass}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14"/></svg>`;
+             return `<svg class="indicator-arrow text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14"/></svg>`;
         }
-        return `<svg class="indicator-arrow ${colorClass}" viewBox="0 0 24 24" fill="currentColor"><path d="${path[direction]}"/></svg>`;
+        return `<svg class="indicator-arrow" viewBox="0 0 24 24" fill="currentColor"><path d="${path[direction]}"/></svg>`;
     }
 
     getItemPrice(gameState, goodId, isSelling = false) {
@@ -468,6 +520,128 @@ export class UIManager {
         this.cache.refuelBtn.disabled = shipState.fuel >= ship.maxFuel;
         
         this.cache.servicesCreditMirror.innerHTML = `<span class="text-cyan-400">⌬ </span><span class="font-bold text-cyan-300 ml-auto">${formatCredits(player.credits, false)}</span>`;
+    }
+
+    showTravelAnimation(from, to, travelInfo, totalHullDamagePercent, finalCallback) {
+        const modal = document.getElementById('travel-animation-modal');
+        const statusText = document.getElementById('travel-status-text');
+        const arrivalLore = document.getElementById('travel-arrival-lore');
+        const canvas = document.getElementById('travel-canvas');
+        const ctx = canvas.getContext('2d');
+        const progressContainer = document.getElementById('travel-progress-container');
+        const progressBar = document.getElementById('travel-progress-bar');
+        const readoutContainer = document.getElementById('travel-readout-container');
+        const infoText = document.getElementById('travel-info-text');
+        const hullDamageText = document.getElementById('travel-hull-damage');
+        const confirmButton = document.getElementById('travel-confirm-button');
+        let animationFrameId = null;
+
+        statusText.textContent = `Traveling to ${to.name}...`;
+        arrivalLore.textContent = '';
+        arrivalLore.style.opacity = 0;
+        readoutContainer.classList.add('hidden');
+        readoutContainer.style.opacity = 0;
+        confirmButton.classList.add('hidden');
+        confirmButton.style.opacity = 0;
+        progressContainer.classList.remove('hidden');
+        progressBar.style.width = '0%';
+        modal.classList.remove('hidden');
+
+        const duration = 2500;
+        let startTime = null;
+        const fromEmoji = LOCATION_VISUALS[from.id] || '❓';
+        const toEmoji = LOCATION_VISUALS[to.id] || '❓';
+        const shipEmoji = '🚀';
+
+        let stars = [];
+        const numStars = 150;
+        canvas.width = canvas.clientWidth;
+        canvas.height = canvas.clientHeight;
+
+        for (let i = 0; i < numStars; i++) {
+            stars.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                radius: Math.random() * 1.5,
+                speed: 0.2 + Math.random() * 0.8,
+                alpha: 0.5 + Math.random() * 0.5
+            });
+        }
+
+        const animationLoop = (currentTime) => {
+            if (!startTime) startTime = currentTime;
+            const elapsedTime = currentTime - startTime;
+            let progress = Math.min(elapsedTime / duration, 1);
+
+            progress = 1 - Math.pow(1 - progress, 3);
+
+            canvas.width = canvas.clientWidth;
+            canvas.height = canvas.clientHeight;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#FFF';
+            for (let i = 0; i < numStars; i++) {
+                const star = stars[i];
+                 if (progress < 1) {
+                    star.x -= star.speed;
+                    if (star.x < 0) star.x = canvas.width;
+                }
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                ctx.globalAlpha = star.alpha;
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1.0;
+
+            const padding = 60;
+            const startX = padding;
+            const endX = canvas.width - padding;
+            const y = canvas.height / 2;
+
+            ctx.font = '42px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(fromEmoji, startX, y);
+            ctx.fillText(toEmoji, endX, y);
+
+            const shipX = startX + (endX - startX) * progress;
+            ctx.save();
+            ctx.translate(shipX, y);
+            ctx.font = '17px sans-serif';
+            ctx.fillText(shipEmoji, 0, 0);
+            ctx.restore();
+
+            progressBar.style.width = `${progress * 100}%`;
+
+            if (progress < 1) {
+                animationFrameId = requestAnimationFrame(animationLoop);
+            } else {
+                statusText.textContent = `Arrived at ${to.name}`;
+                arrivalLore.innerHTML = to.arrivalLore || "You have arrived.";
+
+                infoText.innerHTML = `Time: ${travelInfo.time} Days | <span class="font-bold text-sky-300">Fuel: ${travelInfo.fuelCost}</span>`;
+                hullDamageText.className = 'text-sm font-roboto-mono mt-1 font-bold text-green-300';
+                hullDamageText.innerHTML = totalHullDamagePercent > 0.01 ? `Hull Integrity Decreased by ${totalHullDamagePercent.toFixed(2)}%` : '';
+
+                arrivalLore.style.opacity = 1;
+                progressContainer.classList.add('hidden');
+                readoutContainer.classList.remove('hidden');
+                confirmButton.classList.remove('hidden');
+
+                setTimeout(() => {
+                    readoutContainer.style.opacity = 1;
+                    confirmButton.style.opacity = 1;
+                }, 50);
+            }
+        }
+
+        animationFrameId = requestAnimationFrame(animationLoop);
+
+        confirmButton.onclick = () => {
+            cancelAnimationFrame(animationFrameId);
+            modal.classList.add('hidden');
+            if (finalCallback) finalCallback();
+        };
     }
 
     // --- Modals, Toasts, and Popups ---

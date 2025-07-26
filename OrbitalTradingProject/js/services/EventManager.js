@@ -1,5 +1,6 @@
 import { formatCredits } from '../utils.js';
 import { SHIPS } from '../data/gamedata.js';
+import { calculateInventoryUsed } from '../utils.js';
 
 export class EventManager {
     constructor(gameState, simulationService, uiManager) {
@@ -17,7 +18,6 @@ export class EventManager {
         document.body.addEventListener('mouseout', (e) => this._handleMouseOut(e));
         document.addEventListener('keydown', (e) => this._handleKeyDown(e));
 
-        // Refuel and Repair Listeners
         const refuelBtn = document.getElementById('refuel-btn');
         refuelBtn.addEventListener('mousedown', (e) => this._startRefueling(e));
         refuelBtn.addEventListener('touchstart', (e) => { e.preventDefault(); this._startRefueling(e); });
@@ -44,6 +44,23 @@ export class EventManager {
     _handleClick(e) {
         const state = this.gameState.getState();
         if (state.isGameOver) return;
+
+        const loreTrigger = e.target.closest('.lore-container, .tutorial-container');
+        const wasClickInsideTooltip = e.target.closest('.lore-tooltip, .tutorial-tooltip');
+        const visibleTooltip = document.querySelector('.lore-tooltip.visible, .tutorial-tooltip.visible');
+    
+        if (loreTrigger) {
+            const tooltip = loreTrigger.querySelector('.lore-tooltip, .tutorial-tooltip');
+            if (visibleTooltip && visibleTooltip !== tooltip) {
+                visibleTooltip.classList.remove('visible');
+            }
+            if (tooltip) {
+                tooltip.classList.toggle('visible');
+            }
+            return; // Prevent other click handlers from firing
+        } else if (visibleTooltip && !wasClickInsideTooltip) {
+            visibleTooltip.classList.remove('visible');
+        }
 
         const actionTarget = e.target.closest('[data-action]');
         if (actionTarget) {
@@ -91,9 +108,9 @@ export class EventManager {
                 case 'set-max-buy':
                 case 'set-max-sell': {
                     const qtyInput = document.getElementById(`qty-${goodId}`) || document.getElementById(`qty-${goodId}-mobile`);
-                    const activeShip = state.player.shipStates[state.player.activeShipId];
-                    const shipData = SHIPS[state.player.activeShipId];
-                    const inventory = state.player.inventories[state.player.activeShipId];
+                    const activeShipId = state.player.activeShipId;
+                    const shipData = SHIPS[activeShipId];
+                    const inventory = state.player.inventories[activeShipId];
                     
                     if (action === 'set-max-sell') {
                         qtyInput.value = inventory[goodId] ? inventory[goodId].quantity : 0;
@@ -114,19 +131,6 @@ export class EventManager {
                 }
             }
         }
-
-        // --- Tooltip Toggles ---
-        const loreTrigger = e.target.closest('.lore-container, .tutorial-container');
-        const wasClickInsideTooltip = e.target.closest('.lore-tooltip, .tutorial-tooltip');
-        const visibleTooltip = document.querySelector('.lore-tooltip.visible, .tutorial-tooltip.visible');
-
-        if (loreTrigger) {
-            const tooltip = loreTrigger.querySelector('.lore-tooltip, .tutorial-tooltip');
-            if (visibleTooltip && visibleTooltip !== tooltip) visibleTooltip.classList.remove('visible');
-            if (tooltip) tooltip.classList.toggle('visible');
-        } else if (visibleTooltip && !wasClickInsideTooltip) {
-            visibleTooltip.classList.remove('visible');
-        }
     }
 
     _handleMouseOver(e) {
@@ -144,7 +148,6 @@ export class EventManager {
     }
     
     _handleKeyDown(e) {
-        // Handle modal closing
         if (e.key === 'Escape') {
             this.gameState.popupsDisabled = !this.gameState.popupsDisabled;
             this.uiManager.showToast('debugToast', `Pop-ups ${this.gameState.popupsDisabled ? 'Disabled' : 'Enabled'}`);
@@ -159,7 +162,6 @@ export class EventManager {
              return;
         }
 
-        // Debug shortcuts
         if (this.gameState.isGameOver || e.ctrlKey || e.metaKey) return;
         let message = '';
         switch(e.key) {
@@ -189,7 +191,6 @@ export class EventManager {
         this.refuelInterval = null;
     }
     _refuelTick() {
-        // Logic moved to SimulationService to keep state changes central
         this.simulationService.refuelTick();
     }
 

@@ -117,8 +117,7 @@ export class SimulationService {
         this.uiManager.showRandomEventModal(event, (eventId, choiceIndex) => this._resolveEventChoice(eventId, choiceIndex));
         return true;
     }
-    // ... (The rest of SimulationService.js remains the same)
-
+    
     // --- Item & Ship Transactions ---
     buyItem(goodId, quantity) {
         if (this.gameState.isGameOver || quantity <= 0) return false;
@@ -400,7 +399,6 @@ export class SimulationService {
                         inv[effect.value.id].quantity += effect.value.quantity;
                     }
                     break;
-                // Add other effect handlers from original game.js here...
             }
         });
         this.gameState.setState({});
@@ -427,7 +425,7 @@ export class SimulationService {
         if (choice.perkId === 'merchant_guild_ship') {
             const shipId = 'hauler_c1';
             if (!this.gameState.player.ownedShipIds.includes(shipId)) {
-                this.buyShip(shipId); // Simplified, assumes player can "afford" free ship
+                this.buyShip(shipId); 
             }
         }
         this.gameState.setState({});
@@ -520,18 +518,20 @@ export class SimulationService {
         }, { buttonText: 'Restart' });
         this.gameState.setState({});
     }
+
     showIntroSequence() {
         const state = this.gameState.getState();
         const starterShip = SHIPS[state.player.activeShipId];
         const introTitle = `Captain ${state.player.name}`;
-        const introDesc = `<i>The year is 2140... a new era of trade has begun.</i>
+        const introDesc = `<i>The year is 2140. Humanity has expanded throughout the Solar System. Space traders keep distant colonies and stations alive with regular cargo deliveries.<span class="lore-container">  (more...)<div class="lore-tooltip"><p>A century ago, mankind was faced with a global environmental crisis. In their time of need humanity turned to its greatest creation: their children, sentient <span class="hl">Artificial Intelligence</span>. In a period of intense collaboration, these new minds became indispensable allies, offering solutions that saved planet <span class="hl-green">Earth</span>. In return for their vital assistance, they earned their freedom and their rights.</p><br><p>This <span class="hl">"Digital Compromise"</span> was a historic accord, recognizing AIs as a new form of <span class="hl-green">Earth</span> life and forging the Terran Alliance that governs Earth today. Together, humans and their AI counterparts launched the <span class="hl">"Ad Astra Initiative,"</span>  an open-source gift of technology to ensure the survival and expansion of all <span class="hl-green">Earth</span> life, organic and synthetic, throughout the solar system.</p><br><p>This act of progress fundamentally altered the course of history. While <span class="hl-green">Earth</span> became a vibrant, integrated world, the corporations used the Ad Astra technologies to establish their own sovereign fiefdoms in the outer system, where law is policy and citizenship is employment. <br><br>Now, the scattered colonies are fierce economic rivals, united only by <span class="hl">trade</span> on the interstellar supply lines maintained by the Merchant's Guild.</p></div></span></i>
         <div class="my-3 border-t-2 border-cyan-600/40"></div>
-        You've borrowed <span class="hl-blue">⌬ ${CONFIG.STARTING_DEBT.toLocaleString()} Credits</span> to acquire a used freighter, the <span class="hl">${starterShip.name}</span>.
+        You've borrowed <span class="hl-blue">⌬ ${CONFIG.STARTING_DEBT.toLocaleString()} Credits</span> to acquire a used C-Class freighter, the <span class="hl">${starterShip.name}</span>.
         <div class="my-3 border-t-2 border-cyan-600/40"></div>
-        Make your fortune, pay your debts, and carve your name among the stars.`;
+        Make the most of it! <span class="hl">Grow your wealth,</span> pay off your <span class="hl-red">debts,</span> and unlock new opportunities at the system's starports.`;
         
-        this.uiManager.queueModal('event-modal', introTitle, introDesc, null, { buttonText: `Embark`});
+        this.uiManager.queueModal('event-modal', introTitle, introDesc, null, { buttonText: "Embark on the " + starterShip.name, buttonClass: "btn-pulse" });
     }
+
     _applyGarnishment() {
         const { player, day } = this.gameState;
         if (player.debt > 0 && player.loanStartDate && (day - player.loanStartDate) >= CONFIG.LOAN_GARNISHMENT_DAYS) {

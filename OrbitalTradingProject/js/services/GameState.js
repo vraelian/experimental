@@ -1,5 +1,6 @@
-import { CONFIG } from './data/config.js';
-import { SHIPS, COMMODITIES, MARKETS, DATE_CONFIG } from './data/gamedata.js';
+import { CONFIG } from '../data/config.js';
+import { SHIPS, COMMODITIES, MARKETS } from '../data/gamedata.js';
+import { DATE_CONFIG } from '../data/dateConfig.js';
 import { skewedRandom } from '../utils.js';
 
 function procedurallyGenerateTravelData(markets) {
