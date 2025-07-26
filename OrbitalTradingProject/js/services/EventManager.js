@@ -173,6 +173,10 @@ export class EventManager {
                 this.gameState.player.credits += 1000000;
                 message = 'Debug: +1M Credits.';
                 break;
+            case '#':
+                this.simulationService._advanceDays(365);
+                message = `Debug: Time advanced 1 year.`;
+                break;
         }
         if (message) {
             this.uiManager.showToast('debugToast', message);
@@ -183,28 +187,22 @@ export class EventManager {
     _startRefueling(e) {
         if (this.gameState.isGameOver || this.refuelInterval) return;
         this.refuelButtonElement = e.currentTarget;
-        this._refuelTick();
-        this.refuelInterval = setInterval(() => this._refuelTick(), 200);
+        this.simulationService.refuelTick();
+        this.refuelInterval = setInterval(() => this.simulationService.refuelTick(), 200);
     }
     _stopRefueling() {
         clearInterval(this.refuelInterval);
         this.refuelInterval = null;
     }
-    _refuelTick() {
-        this.simulationService.refuelTick();
-    }
 
     _startRepairing(e) {
         if (this.gameState.isGameOver || this.repairInterval) return;
         this.repairButtonElement = e.currentTarget;
-        this._repairTick();
-        this.repairInterval = setInterval(() => this._repairTick(), 200);
+        this.simulationService.repairTick();
+        this.repairInterval = setInterval(() => this.simulationService.repairTick(), 200);
     }
     _stopRepairing() {
         clearInterval(this.repairInterval);
         this.repairInterval = null;
-    }
-    _repairTick() {
-        this.simulationService.repairTick();
     }
 }

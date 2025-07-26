@@ -292,6 +292,43 @@ export class SimulationService {
         this.gameState.setState({});
     }
 
+    refuelTick() {
+        const state = this.gameState;
+        const ship = this._getActiveShip();
+        if (ship.fuel >= ship.maxFuel) return;
+
+        let costPerTick = MARKETS.find(m => m.id === state.currentLocationId).fuelPrice / 4;
+        if (state.player.activePerks.venetian_syndicate && state.currentLocationId === 'loc_venus') {
+            costPerTick *= (1 - PERKS.venetian_syndicate.fuelDiscount);
+        }
+
+        if (state.player.credits < costPerTick) return;
+
+        state.player.credits -= costPerTick;
+        state.player.shipStates[ship.id].fuel = Math.min(ship.maxFuel, ship.fuel + 2.5);
+        this._recordFinanceTransaction('fuel', -costPerTick);
+        this.gameState.setState({});
+    }
+
+    repairTick() {
+        const state = this.gameState;
+        const ship = this._getActiveShip();
+        if (ship.health >= ship.maxHealth) return;
+        
+        let costPerTick = (ship.maxHealth * (CONFIG.REPAIR_AMOUNT_PER_TICK / 100)) * CONFIG.REPAIR_COST_PER_HP;
+        if (state.player.activePerks.venetian_syndicate && state.currentLocationId === 'loc_venus') {
+            costPerTick *= (1 - PERKS.venetian_syndicate.repairDiscount);
+        }
+
+        if (state.player.credits < costPerTick) return;
+        
+        state.player.credits -= costPerTick;
+        state.player.shipStates[ship.id].health = Math.min(ship.maxHealth, ship.health + (ship.maxHealth * (CONFIG.REPAIR_AMOUNT_PER_TICK / 100)));
+        this._recordFinanceTransaction('repair', -costPerTick);
+        this._checkHullWarnings(ship.id);
+        this.gameState.setState({});
+    }
+
     // --- Event & Time Progression ---
     _advanceDays(days) {
         for (let i = 0; i < days; i++) {
@@ -376,15 +413,17 @@ export class SimulationService {
         }, { buttonText: 'Continue Journey' });
     }
 
-    _applyEventEffects(outcome) {
-        const effects = outcome.effects;
+    _applyEventEffects(chosenOutcome) {
+        const effects = chosenOutcome.effects;
         const state = this.gameState;
         const activeShip = this._getActiveShip();
+        const activeShipState = state.player.shipStates[activeShip.id];
+        const activeInventory = this._getActiveInventory();
 
         effects.forEach(effect => {
             switch (effect.type) {
                 case 'credits': state.player.credits += effect.value; break;
-                case 'fuel': state.player.shipStates[activeShip.id].fuel = Math.max(0, state.player.shipStates[activeShip.id].fuel + effect.value); break;
+                case 'fuel': activeShipState.fuel = Math.max(0, activeShipState.fuel + effect.value); break;
                 case 'hull_damage_percent':
                     let damage = Array.isArray(effect.value) ? Math.random() * (effect.value[1] - effect.value[0]) + effect.value[0] : effect.value;
                     state.pendingTravel.eventHullDamagePercent = (state.pendingTravel.eventHullDamagePercent || 0) + damage;
@@ -394,11 +433,65 @@ export class SimulationService {
                 case 'set_travel_time': state.pendingTravel.setTravelTime = effect.value; break;
                 case 'add_debt': state.player.debt += effect.value; break;
                 case 'add_cargo':
-                    const inv = this._getActiveInventory();
-                    if (calculateInventoryUsed(inv) + effect.value.quantity <= activeShip.cargoCapacity) {
-                        inv[effect.value.id].quantity += effect.value.quantity;
+                    if (calculateInventoryUsed(activeInventory) + effect.value.quantity <= activeShip.cargoCapacity) {
+                        activeInventory[effect.value.id].quantity += effect.value.quantity;
                     }
                     break;
+                case 'lose_cargo':
+                    activeInventory[effect.value.id].quantity = Math.max(0, activeInventory[effect.value.id].quantity - effect.value.quantity);
+                    break;
+                case 'lose_random_cargo_percent':
+                    const heldItems = Object.entries(activeInventory).filter(([, item]) => item.quantity > 0);
+                    if (heldItems.length > 0) {
+                        const [randomItemId] = heldItems[Math.floor(Math.random() * heldItems.length)];
+                        const amountToLose = Math.ceil(activeInventory[randomItemId].quantity * effect.value);
+                        activeInventory[randomItemId].quantity -= amountToLose;
+                    }
+                    break;
+                case 'sell_random_cargo_premium':
+                    const itemsToSell = Object.entries(activeInventory).filter(([, item]) => item.quantity > 0);
+                    if (itemsToSell.length > 0) {
+                        const [itemId, item] = itemsToSell[Math.floor(Math.random() * itemsToSell.length)];
+                        const salePrice = state.market.galacticAverages[itemId] * effect.value;
+                        state.player.credits += salePrice * item.quantity;
+                        item.quantity = 0;
+                    }
+                    break;
+                case 'set_new_random_destination':
+                    const otherMarkets = MARKETS.filter(m => m.id !== state.currentLocationId && state.player.unlockedLocationIds.includes(m.id));
+                    if(otherMarkets.length > 0) {
+                        state.pendingTravel.destinationId = otherMarkets[Math.floor(Math.random() * otherMarkets.length)].id;
+                    }
+                    break;
+                case 'resolve_space_race': {
+                    const wager = Math.floor(state.player.credits * 0.80);
+                    const winChance = { 'S': 0.85, 'A': 0.70, 'B': 0.55, 'C': 0.40, 'O': 0.95 }[activeShip.class] || 0.40;
+                    if (Math.random() < winChance) {
+                        state.player.credits += wager;
+                        chosenOutcome.description = `Your Class ${activeShip.class} ship's superior handling wins the day! You gain <span class="hl-green">${formatCredits(wager)}</span>.`;
+                    } else {
+                        state.player.credits -= wager;
+                        chosenOutcome.description = `The luxury ship's raw power was too much. You lose <span class="hl-red">${formatCredits(wager)}</span>.`;
+                    }
+                    break;
+                }
+                case 'resolve_adrift_passenger': {
+                    activeShipState.fuel = Math.max(0, activeShipState.fuel - 30);
+                    const spaceAvailable = activeShip.cargoCapacity - calculateInventoryUsed(activeInventory);
+                    if (spaceAvailable >= 40) {
+                        activeInventory['cybernetics'].quantity += 40;
+                        chosenOutcome.description = `In gratitude, the passenger gives you a crate of high-grade cybernetics. You gain <span class="hl-green">40 Cybernetics</span>.`;
+                    } else if (state.player.debt > 0) {
+                        const debtPaid = Math.floor(state.player.debt * 0.20);
+                        state.player.debt -= debtPaid;
+                        chosenOutcome.description = `Seeing your tight cargo hold, the passenger pays off 20% of your debt, reducing it by <span class="hl-green">${formatCredits(debtPaid)}</span>.`;
+                    } else {
+                        const creditsGained = Math.floor(state.player.credits * 0.05);
+                        state.player.credits += creditsGained;
+                        chosenOutcome.description = `With no room for cargo and no debts to pay, the passenger transfers you <span class="hl-green">${formatCredits(creditsGained)}</span>.`;
+                    }
+                    break;
+                }
             }
         });
         this.gameState.setState({});
@@ -425,7 +518,12 @@ export class SimulationService {
         if (choice.perkId === 'merchant_guild_ship') {
             const shipId = 'hauler_c1';
             if (!this.gameState.player.ownedShipIds.includes(shipId)) {
-                this.buyShip(shipId); 
+                 this.gameState.player.ownedShipIds.push(shipId);
+                const ship = SHIPS[shipId];
+                this.gameState.player.shipStates[shipId] = { health: ship.maxHealth, fuel: ship.maxFuel, hullAlerts: { one: false, two: false } };
+                this.gameState.player.inventories[shipId] = {};
+                COMMODITIES.forEach(c => { this.gameState.player.inventories[shipId][c.id] = { quantity: 0, avgCost: 0 }; });
+                this.uiManager.queueModal('event-modal', 'Vessel Delivered', `The Merchant's Guild has delivered a new ${ship.name} to your hangar.`);
             }
         }
         this.gameState.setState({});
@@ -538,12 +636,12 @@ export class SimulationService {
             const garnishedAmount = Math.floor(player.credits * CONFIG.LOAN_GARNISHMENT_PERCENT);
             if (garnishedAmount > 0) {
                 player.credits -= garnishedAmount;
-                this.uiManager.showToast('garnishmentToast', `7% of credits garnished for debt: -${formatCredits(garnishedAmount, false)}`);
+                this.uiManager.showToast('garnishmentToast', `14% of credits garnished for debt: -${formatCredits(garnishedAmount, false)}`);
                 this._recordFinanceTransaction('debt', -garnishedAmount);
             }
 
             if (!player.seenGarnishmentWarning) {
-                const msg = "Your loan is delinquent. Your lender is now garnishing 7% of your credits weekly until the debt is paid.";
+                const msg = "Your loan is delinquent. Your lender is now garnishing 14% of your credits weekly until the debt is paid.";
                 this.uiManager.queueModal('event-modal', "Credit Garnishment Notice", msg, null, { buttonText: 'Understood', buttonClass: 'bg-red-800/80' });
                 player.seenGarnishmentWarning = true;
             }

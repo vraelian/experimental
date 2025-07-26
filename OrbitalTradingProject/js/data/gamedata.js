@@ -91,6 +91,44 @@ export const RANDOM_EVENTS = [
         ]
     },
     {
+        id: 'adrift_passenger',
+        title: 'Adrift Passenger',
+        scenario: 'You find a spacer in a functioning escape pod. Their beacon is down, and they ask for passage to the nearest civilized port.',
+        precondition: (gameState, activeShip, getActiveInventory) => activeShip.fuel >= 30,
+        choices: [
+            {
+                title: 'Take Aboard for Payment',
+                outcomes: [ { chance: 1.0, description: 'The passenger is grateful for the rescue and pays you 10,000 credits upon arrival at your destination.', effects: [ { type: 'credits', value: 10000 } ] } ]
+            },
+            {
+                title: 'Give a Fuel Cell (30 Fuel)',
+                outcomes: [
+                    {
+                        chance: 1.0,
+                        description: 'You offer the stranded spacer a fuel cell...',
+                        effects: [ { type: 'resolve_adrift_passenger' } ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'meteoroid_swarm',
+        title: 'Micrometeoroid Swarm',
+        scenario: 'Alarms blare as you fly into an uncharted micrometeoroid swarm. Your navigation computer suggests two options to minimize damage.',
+        precondition: (gameState, activeShip, getActiveInventory) => activeShip.fuel >= 15,
+        choices: [
+            {
+                title: 'Evade Aggressively (+15 Fuel)',
+                outcomes: [ { chance: 1.0, description: 'You burn extra fuel to successfully dodge the worst of the swarm, emerging unscathed.', effects: [ { type: 'fuel', value: -15 } ] } ]
+            },
+            {
+                title: 'Brace for Impact',
+                outcomes: [ { chance: 1.0, description: 'You trust your hull to withstand the impacts, taking a beating but saving fuel.', effects: [ { type: 'hull_damage_percent', value: [10, 25] } ] } ]
+            }
+        ]
+    },
+    {
         id: 'engine_malfunction',
         title: 'Engine Malfunction',
         scenario: 'A sickening shudder runs through the ship. A key plasma injector has failed, destabilizing your engine output.',
@@ -114,6 +152,49 @@ export const RANDOM_EVENTS = [
             {
                 title: 'Limp to Destination',
                 outcomes: [ { chance: 1.0, description: 'You shut down the faulty injector. The ship is slower, but stable. Your remaining travel time increases by 25%.', effects: [ { type: 'travel_time_add_percent', value: 0.25 } ] } ]
+            }
+        ]
+    },
+    {
+        id: 'nav_glitch',
+        title: 'Navigation Sensor Glitch',
+        scenario: 'The nav-console flashes red. Your primary positioning sensors are offline, and you\'re flying blind in the deep dark.',
+        precondition: (gameState, activeShip, getActiveInventory) => true,
+        choices: [
+            {
+                title: 'Attempt Hard Reboot',
+                outcomes: [
+                    {
+                        chance: 0.50,
+                        description: 'Success! The sensors come back online. In your haste, you find a shortcut, shortening your trip. You will arrive the next day.',
+                        effects: [ { type: 'set_travel_time', value: 1 } ]
+                    },
+                    {
+                        chance: 0.50,
+                        description: 'The reboot corrupts your course data, sending you on a long, meandering path. This adds 15 days to your journey.',
+                        effects: [ { type: 'travel_time_add', value: 15 } ]
+                    }
+                ]
+            },
+            {
+                title: 'Navigate Manually',
+                outcomes: [ { chance: 1.0, description: 'You rely on old-fashioned star charts. It\'s slow but safe, adding 7 days to your trip.', effects: [ { type: 'travel_time_add', value: 7 } ] } ]
+            }
+        ]
+    },
+    {
+        id: 'life_support_fluctuation',
+        title: 'Life Support Fluctuation',
+        scenario: 'An alarm indicates unstable oxygen levels. It\'s not critical yet, but the crew is on edge and efficiency is dropping.',
+        precondition: (gameState, activeShip, getActiveInventory) => activeShip.health > (SHIPS[activeShip.id].maxHealth * 0.25),
+        choices: [
+            {
+                title: 'Salvage materials from the ship to repair the atmospheric regulators. (This will cost 25% hull damage)',
+                outcomes: [ { chance: 1.0, description: 'You cannibalize some non-essential hull plating to get the regulators working again. The system stabilizes, but the ship\'s integrity is compromised.', effects: [ { type: 'hull_damage_percent', value: 25 } ] } ]
+            },
+            {
+                title: 'Defer Maintenance Costs',
+                outcomes: [ { chance: 1.0, description: 'You log the issue for later. The cost of repairs and crew hazard pay, 5,000 credits, is added to your debt.', effects: [ { type: 'add_debt', value: 5000 } ] } ]
             }
         ]
     },
@@ -147,10 +228,51 @@ export const RANDOM_EVENTS = [
                 ]
             }
         ]
+    },
+    {
+        id: 'space_race',
+        title: 'Space Race Wager',
+        scenario: 'A smug-looking luxury ship pulls alongside and its captain, broadcasted on your main screen, challenges you to a "friendly" race to the destination.',
+        precondition: (gameState, activeShip, getActiveInventory) => gameState.player.credits > 100,
+        choices: [
+            {
+                title: 'Accept Wager (Bet: 80% of current credits)',
+                outcomes: [
+                    {
+                        chance: 1.0,
+                        description: 'You accept the high-stakes challenge...',
+                        effects: [ { type: 'resolve_space_race' } ]
+                    }
+                ]
+            },
+            {
+                title: 'Politely Decline',
+                outcomes: [ { chance: 1.0, description: 'You decline the race. The luxury ship performs a flashy maneuver and speeds off, leaving you to travel in peace.', effects: [] } ]
+            }
+        ]
+    },
+    {
+        id: 'supply_drop',
+        title: 'Emergency Supply Drop',
+        scenario: 'You intercept a system-wide emergency broadcast. A new outpost is offering a massive premium for an immediate delivery of a specific commodity that you happen to be carrying.',
+        precondition: (gameState, activeShip, getActiveInventory) => {
+            const inventory = getActiveInventory();
+            const eligibleCommodities = Object.entries(inventory).filter(([id, item]) => item.quantity > 0);
+            return eligibleCommodities.length > 0;
+        },
+        choices: [
+            {
+                title: 'Divert Course to Deliver',
+                outcomes: [ { chance: 1.0, description: 'You sell your entire stack of the requested commodity for 3 times its galactic average value. Your course is diverted to a new, random destination, adding 7 days to your trip.', effects: [ { type: 'sell_random_cargo_premium', value: 3 }, { type: 'travel_time_add', value: 7 }, { type: 'set_new_random_destination', value: true } ] } ]
+            },
+            {
+                title: 'Decline and Continue',
+                outcomes: [ { chance: 1.0, description: 'You stick to your original plan and let someone else handle the emergency supply run.', effects: [] } ]
+            }
+        ]
     }
-    // ... (rest of RANDOM_EVENTS)
 ];
-// ... (rest of the data: SHIPS, COMMODITIES, MARKETS)
+
 export const SHIPS = {
     starter: { name: 'Wanderer', class: 'C', price: 0, maxHealth: 100, cargoCapacity: 50, maxFuel: 100, saleLocationId: null, lore: 'A reliable, if unspectacular, light freighter. It has seen better days, but its engines are sound and the hull is still mostly airtight.' },
     hauler_c1: { name: 'Stalwart', class: 'C', price: 65000, maxHealth: 150, cargoCapacity: 75, maxFuel: 80, saleLocationId: 'loc_mars', lore: 'A workhorse of the inner worlds. Slow and cumbersome, but boasts an impressive cargo capacity for its price point.' },

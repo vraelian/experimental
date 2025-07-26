@@ -20,7 +20,7 @@ export const CONFIG = {
     DAILY_PRICE_VOLATILITY: 0.035,
     MEAN_REVERSION_STRENGTH: 0.01,
     LOAN_GARNISHMENT_DAYS: 180,
-    LOAN_GARNISHMENT_PERCENT: 0.07,
+    LOAN_GARNISHMENT_PERCENT: 0.14,
     RANDOM_EVENT_CHANCE: 0.07,
     COMMODITY_MILESTONES: [
         { threshold: 30000, unlockLevel: 2, message: "Your growing reputation has unlocked access to more advanced industrial hardware.<br>New opportunities await." },

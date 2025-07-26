@@ -170,19 +170,20 @@ export class GameState {
         Object.assign(this, initialState);
         this._calculateGalacticAverages();
         this._seedInitialMarketPrices();
+        this._recordPriceHistory(); // Record initial prices
         this.setState({}); // Notify subscribers and save
     }
 
     _getTierAvailability(tier) {
         switch (tier) {
-            case 1: return { min: 6, max: 240 };
-            case 2: return { min: 4, max: 200 };
-            case 3: return { min: 3, max: 120 };
-            case 4: return { min: 2, max: 40 };
-            case 5: return { min: 1, max: 20 };
-            case 6: return { min: 0, max: 20 };
-            case 7: return { min: 0, max: 10 };
-            default: return { min: 0, max: 5 };
+            case 1: return { min: 6, max: 240, skew: 250 };
+            case 2: return { min: 4, max: 200, skew: 100 };
+            case 3: return { min: 3, max: 120, skew: 32 };
+            case 4: return { min: 2, max: 40, skew: 17 };
+            case 5: return { min: 1, max: 20, skew: 13 };
+            case 6: return { min: 0, max: 20, skew: 5 };
+            case 7: return { min: 0, max: 10, skew: 1 };
+            default: return { min: 0, max: 5, skew: 1 };
         }
     }
 
@@ -200,6 +201,22 @@ export class GameState {
                 let price = this.market.galacticAverages[good.id] * (1 + (Math.random() - 0.5) * 0.5);
                 price *= (location.modifiers[good.id] || 1.0);
                 this.market.prices[location.id][good.id] = Math.max(1, Math.round(price));
+            });
+        });
+    }
+
+    _recordPriceHistory() {
+        if (!this || !this.market) return;
+        MARKETS.forEach(market => {
+            if (!this.market.priceHistory[market.id]) this.market.priceHistory[market.id] = {};
+            COMMODITIES.forEach(good => {
+                if (!this.market.priceHistory[market.id][good.id]) this.market.priceHistory[market.id][good.id] = [];
+                const history = this.market.priceHistory[market.id][good.id];
+                const currentPrice = this.market.prices[market.id][good.id];
+                history.push({ day: this.day, price: currentPrice });
+                while (history.length > CONFIG.PRICE_HISTORY_LENGTH) {
+                    history.shift();
+                }
             });
         });
     }
