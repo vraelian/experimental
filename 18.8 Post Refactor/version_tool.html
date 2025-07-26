@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Orbital Trading Version Updater</title>
+    <style>
+        body {
+            font-family: 'Exo 2', sans-serif;
+            background-color: #0c101d;
+            color: #d0d8e8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            padding: 2rem;
+            box-sizing: border-box;
+        }
+        .container {
+            background: #1a253c;
+            border: 2px solid #3a4a6a;
+            border-radius: 15px;
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(58, 74, 106, 0.4);
+        }
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            color: #60a5fa;
+            margin-top: 0;
+        }
+        p {
+            color: #a3b8ee;
+            line-height: 1.6;
+        }
+        .btn {
+            display: inline-block;
+            transition: all 0.3s ease;
+            border: 1px solid #4a6a8a;
+            border-radius: 8px;
+            background-color: #22304a;
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 1px;
+            padding: 0.75rem 1.5rem;
+            color: #c0d0f0;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 1rem;
+        }
+        .btn:hover:not(:disabled) {
+            background-color: #32405a;
+            color: #e0f0ff;
+            transform: translateY(-2px);
+        }
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        #status {
+            margin-top: 1.5rem;
+            background-color: rgba(12, 16, 29, 0.5);
+            padding: 1rem;
+            border-radius: 8px;
+            min-height: 100px;
+            text-align: left;
+            font-family: 'Roboto Mono', monospace;
+            white-space: pre-wrap;
+            line-height: 1.5;
+        }
+        .success { color: #34d399; }
+        .error { color: #f87171; }
+        .warn { color: #fde047; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Version Updater</h1>
+        <p>Select your <strong>index.html</strong> file to automatically increment the version numbers for the page title, in-game display, and file links.</p>
+
+        <input type="file" id="fileInput" accept=".html" style="display: none;">
+        <button class="btn" onclick="document.getElementById('fileInput').click();">1. Select index.html</button>
+        
+        <div id="status">Awaiting file selection...</div>
+
+        <button id="saveButton" class="btn" disabled>2. Save Updated index.html</button>
+    </div>
+
+    <script>
+        let updatedContent = null;
+        const fileInput = document.getElementById('fileInput');
+        const saveButton = document.getElementById('saveButton');
+        const statusEl = document.getElementById('status');
+        const filesToVersion = ['./style.css', './config.js', './gamedata.js', './game.js'];
+
+        fileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) {
+                statusEl.innerHTML = '<span class="warn">No file selected.</span>';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                let htmlContent = e.target.result;
+                let changesLog = `Processing ${file.name}...\n`;
+                let changesMade = false;
+                let newVersion = null;
+
+                // --- 1. Update Title and get the new version number ---
+                const titleRegex = /<title>(.*?)v([0-9\.]+)<\/title>/;
+                const titleMatch = htmlContent.match(titleRegex);
+
+                if (titleMatch) {
+                    const prefix = titleMatch[1];
+                    const currentVersion = titleMatch[2];
+                    const versionParts = currentVersion.split('.').map(Number);
+                    versionParts[versionParts.length - 1]++;
+                    newVersion = versionParts.join('.');
+                    
+                    const newTitle = `<title>${prefix}v${newVersion}</title>`;
+                    htmlContent = htmlContent.replace(titleRegex, newTitle);
+                    changesLog += `<span class="success">✓ Title: v${currentVersion} → v${newVersion}</span>\n`;
+                    changesMade = true;
+                } else {
+                    changesLog += `<span class="warn">⚠️ No version found in <title> tag.</span>\n`;
+                }
+
+                if (newVersion) {
+                    // --- 2. Update the in-game version display ---
+                    const displayRegex = /<p id="version-display">(.*?)Version ([0-9\.]+)<\/p>/;
+                    const displayMatch = htmlContent.match(displayRegex);
+                    if (displayMatch) {
+                         const currentDisplayVersion = displayMatch[2];
+                         const newDisplayP = `<p id="version-display">Version ${newVersion}</p>`;
+                         htmlContent = htmlContent.replace(displayRegex, newDisplayP);
+                         changesLog += `<span class="success">✓ Display: v${currentDisplayVersion} → v${newVersion}</span>\n`;
+                    } else {
+                         changesLog += `<span class="warn">⚠️ No #version-display paragraph found.</span>\n`;
+                    }
+                    
+                    // --- 3. Update CSS and JS file links ---
+                    filesToVersion.forEach(filePath => {
+                        const fileRegex = new RegExp(`(href|src)="${filePath.replace('.', '\\.')}(\\?v=([0-9\\.]+))?"`);
+                        const fileMatch = htmlContent.match(fileRegex);
+                        if (fileMatch) {
+                            const oldString = fileMatch[0];
+                            const attribute = fileMatch[1];
+                            const currentFileVer = fileMatch[3] || 'none';
+                            const newString = `${attribute}="${filePath}?v=${newVersion}"`;
+                            htmlContent = htmlContent.replace(oldString, newString);
+                            changesLog += `<span class="success">✓ ${filePath.split('/')[1]} link: v${currentFileVer} → v${newVersion}</span>\n`;
+                        } else {
+                            changesLog += `<span class="warn">⚠️ No link found for ${filePath}.</span>\n`;
+                        }
+                    });
+                }
+
+                if (changesMade) {
+                    statusEl.innerHTML = changesLog + '\nReady to save.';
+                    updatedContent = htmlContent;
+                    saveButton.disabled = false;
+                } else {
+                    statusEl.innerHTML = changesLog + '<span class="warn">⚠️ No versions were found to update.</span>';
+                    updatedContent = null;
+                    saveButton.disabled = true;
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        saveButton.addEventListener('click', () => {
+            if (!updatedContent) {
+                statusEl.innerHTML = '<span class="error">Error: No updated content to save.</span>';
+                return;
+            }
+            const blob = new Blob([updatedContent], { type: 'text/html' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'index.html';
+            link.click();
+            URL.revokeObjectURL(link.href);
+            
+            statusEl.innerHTML += '\n<span class="success">Download initiated. Overwrite your old index.html.</span>';
+            saveButton.disabled = true;
+        });
+    </script>
+</body>
+</html>
