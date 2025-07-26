@@ -1,9 +1,16 @@
-// js/data/gamedata.js
-
 export const LOCATION_VISUALS = {
-    'loc_earth': '🌍', 'loc_luna': '🌕', 'loc_mars': '🔴', 'loc_venus': '🟡',
-    'loc_belt': '🪨', 'loc_saturn': '🪐', 'loc_jupiter': '🟠', 'loc_uranus': '🔵',
-    'loc_neptune': '🟣', 'loc_pluto': '🪩', 'loc_exchange': '🏴‍☠️', 'loc_kepler': '👁️'
+    'loc_earth': '🌍',
+    'loc_luna': '🌕',
+    'loc_mars': '🔴',
+    'loc_venus': '🟡',
+    'loc_belt': '🪨',
+    'loc_saturn': '🪐',
+    'loc_jupiter': '🟠',
+    'loc_uranus': '🔵',
+    'loc_neptune': '🟣',
+    'loc_pluto': '🪩',
+    'loc_exchange': '🏴‍☠️',
+    'loc_kepler': '👁️'
 };
 
 export const PERKS = {
@@ -35,12 +42,14 @@ export const AGE_EVENTS = [
     }
 ];
 
+// Note: The 'precondition' functions here will be called from SimulationService, 
+// which will have access to the necessary state and helper functions.
 export const RANDOM_EVENTS = [
     {
         id: 'distress_call',
         title: 'Distress Call',
         scenario: 'You pick up a distress signal from a small, damaged ship. They are out of fuel and requesting an emergency transfer to restart their reactor.',
-        precondition: (gameState, activeShip, getActiveInventory) => activeShip.fuel >= 20,
+        precondition: (gameState, activeShip) => activeShip.fuel >= 20,
         choices: [
             {
                 title: 'Offer Aid (20 Fuel)',
@@ -67,7 +76,7 @@ export const RANDOM_EVENTS = [
         id: 'floating_cargo',
         title: 'Floating Cargo Pod',
         scenario: 'Long-range sensors detect an unmarked, sealed cargo pod adrift in the shipping lane. It appears to be intact.',
-        precondition: (gameState, activeShip, getActiveInventory) => true,
+        precondition: (gameState, activeShip) => true,
         choices: [
             {
                 title: 'Bring it Aboard',
@@ -94,7 +103,7 @@ export const RANDOM_EVENTS = [
         id: 'adrift_passenger',
         title: 'Adrift Passenger',
         scenario: 'You find a spacer in a functioning escape pod. Their beacon is down, and they ask for passage to the nearest civilized port.',
-        precondition: (gameState, activeShip, getActiveInventory) => activeShip.fuel >= 30,
+        precondition: (gameState, activeShip) => activeShip.fuel >= 30,
         choices: [
             {
                 title: 'Take Aboard for Payment',
@@ -116,7 +125,7 @@ export const RANDOM_EVENTS = [
         id: 'meteoroid_swarm',
         title: 'Micrometeoroid Swarm',
         scenario: 'Alarms blare as you fly into an uncharted micrometeoroid swarm. Your navigation computer suggests two options to minimize damage.',
-        precondition: (gameState, activeShip, getActiveInventory) => activeShip.fuel >= 15,
+        precondition: (gameState, activeShip) => activeShip.fuel >= 15,
         choices: [
             {
                 title: 'Evade Aggressively (+15 Fuel)',
@@ -159,7 +168,7 @@ export const RANDOM_EVENTS = [
         id: 'nav_glitch',
         title: 'Navigation Sensor Glitch',
         scenario: 'The nav-console flashes red. Your primary positioning sensors are offline, and you\'re flying blind in the deep dark.',
-        precondition: (gameState, activeShip, getActiveInventory) => true,
+        precondition: (gameState, activeShip) => true,
         choices: [
             {
                 title: 'Attempt Hard Reboot',
@@ -186,7 +195,7 @@ export const RANDOM_EVENTS = [
         id: 'life_support_fluctuation',
         title: 'Life Support Fluctuation',
         scenario: 'An alarm indicates unstable oxygen levels. It\'s not critical yet, but the crew is on edge and efficiency is dropping.',
-        precondition: (gameState, activeShip, getActiveInventory) => activeShip.health > (SHIPS[activeShip.id].maxHealth * 0.25),
+        precondition: (gameState, activeShip) => activeShip.health > (SHIPS[activeShip.id].maxHealth * 0.25),
         choices: [
             {
                 title: 'Salvage materials from the ship to repair the atmospheric regulators. (This will cost 25% hull damage)',
@@ -233,7 +242,7 @@ export const RANDOM_EVENTS = [
         id: 'space_race',
         title: 'Space Race Wager',
         scenario: 'A smug-looking luxury ship pulls alongside and its captain, broadcasted on your main screen, challenges you to a "friendly" race to the destination.',
-        precondition: (gameState, activeShip, getActiveInventory) => gameState.player.credits > 100,
+        precondition: (gameState, activeShip) => gameState.player.credits > 100,
         choices: [
             {
                 title: 'Accept Wager (Bet: 80% of current credits)',

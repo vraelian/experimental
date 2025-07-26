@@ -1,4 +1,3 @@
-// js/data/dateConfig.js
 export const DATE_CONFIG = {
     START_YEAR: 2140,
     START_DAY_OF_WEEK: 1,

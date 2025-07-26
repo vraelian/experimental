@@ -1,3 +1,4 @@
+// js/services/EventManager.js
 import { formatCredits } from '../utils.js';
 import { SHIPS } from '../data/gamedata.js';
 import { calculateInventoryUsed } from '../utils.js';
@@ -38,7 +39,6 @@ export class EventManager {
                  this.uiManager.renderMarketView(this.gameState.getState());
              }
         });
-        window.addEventListener('scroll', () => this.uiManager.updateGraphTooltipPosition(), true);
     }
 
     _handleClick(e) {
@@ -46,19 +46,14 @@ export class EventManager {
         if (state.isGameOver) return;
 
         const loreTrigger = e.target.closest('.lore-container, .tutorial-container');
-        const wasClickInsideTooltip = e.target.closest('.lore-tooltip, .tutorial-tooltip');
-        const visibleTooltip = document.querySelector('.lore-tooltip.visible, .tutorial-tooltip.visible');
-    
         if (loreTrigger) {
             const tooltip = loreTrigger.querySelector('.lore-tooltip, .tutorial-tooltip');
-            if (visibleTooltip && visibleTooltip !== tooltip) {
-                visibleTooltip.classList.remove('visible');
-            }
-            if (tooltip) {
-                tooltip.classList.toggle('visible');
-            }
-            return; // Prevent other click handlers from firing
-        } else if (visibleTooltip && !wasClickInsideTooltip) {
+            if (tooltip) tooltip.classList.toggle('visible');
+            return;
+        }
+        const wasClickInsideTooltip = e.target.closest('.lore-tooltip, .tutorial-tooltip');
+        const visibleTooltip = document.querySelector('.lore-tooltip.visible, .tutorial-tooltip.visible');
+        if (visibleTooltip && !wasClickInsideTooltip) {
             visibleTooltip.classList.remove('visible');
         }
 
@@ -86,7 +81,6 @@ export class EventManager {
                 case 'take-loan': this.simulationService.takeLoan(JSON.parse(loanDetails)); break;
                 case 'purchase-intel': this.simulationService.purchaseIntel(parseInt(cost)); break;
                 
-                // Market actions
                 case 'buy': case 'sell': {
                     const qtyInput = document.getElementById(`qty-${goodId}`) || document.getElementById(`qty-${goodId}-mobile`);
                     const quantity = parseInt(qtyInput.value, 10) || 1;
@@ -105,28 +99,26 @@ export class EventManager {
                     }
                     break;
                 }
-                case 'set-max-buy':
-                case 'set-max-sell': {
+                case 'set-max-buy': case 'set-max-sell': {
                     const qtyInput = document.getElementById(`qty-${goodId}`) || document.getElementById(`qty-${goodId}-mobile`);
-                    const activeShipId = state.player.activeShipId;
-                    const shipData = SHIPS[activeShipId];
-                    const inventory = state.player.inventories[activeShipId];
+                    const ship = this.simulationService._getActiveShip();
+                    const inventory = this.simulationService._getActiveInventory();
                     
                     if (action === 'set-max-sell') {
                         qtyInput.value = inventory[goodId] ? inventory[goodId].quantity : 0;
                     } else {
                         const price = this.uiManager.getItemPrice(state, goodId);
-                        const spaceAvailable = shipData.cargoCapacity - calculateInventoryUsed(inventory);
-                        const canAfford = price > 0 ? Math.floor(state.player.credits / price) : spaceAvailable;
-                        const marketStock = state.market.inventory[state.currentLocationId][goodId].quantity;
-                        qtyInput.value = Math.max(0, Math.min(spaceAvailable, canAfford, marketStock));
+                        const space = ship.cargoCapacity - calculateInventoryUsed(inventory);
+                        const canAfford = price > 0 ? Math.floor(state.player.credits / price) : space;
+                        const stock = state.market.inventory[state.currentLocationId][goodId].quantity;
+                        qtyInput.value = Math.max(0, Math.min(space, canAfford, stock));
                     }
                     break;
                 }
                 case 'increment': case 'decrement': {
                     const qtyInput = document.getElementById(`qty-${goodId}`) || document.getElementById(`qty-${goodId}-mobile`);
-                    let currentValue = parseInt(qtyInput.value) || 0;
-                    qtyInput.value = (action === 'increment') ? currentValue + 1 : Math.max(1, currentValue - 1);
+                    let val = parseInt(qtyInput.value) || 0;
+                    qtyInput.value = (action === 'increment') ? val + 1 : Math.max(1, val - 1);
                     break;
                 }
             }
@@ -186,23 +178,43 @@ export class EventManager {
 
     _startRefueling(e) {
         if (this.gameState.isGameOver || this.refuelInterval) return;
-        this.refuelButtonElement = e.currentTarget;
-        this.simulationService.refuelTick();
-        this.refuelInterval = setInterval(() => this.simulationService.refuelTick(), 200);
+        this._refuelTick(e.currentTarget);
+        this.refuelInterval = setInterval(() => this._refuelTick(e.currentTarget), 200);
     }
+
     _stopRefueling() {
         clearInterval(this.refuelInterval);
         this.refuelInterval = null;
     }
 
+    _refuelTick(buttonElement) {
+        const cost = this.simulationService.refuelTick();
+        if (cost > 0) {
+            const rect = buttonElement.getBoundingClientRect();
+            this.uiManager.createFloatingText(`-${formatCredits(cost, false)}`, rect.left + rect.width / 2, rect.top, '#f87171');
+        } else {
+            this._stopRefueling();
+        }
+    }
+
     _startRepairing(e) {
         if (this.gameState.isGameOver || this.repairInterval) return;
-        this.repairButtonElement = e.currentTarget;
-        this.simulationService.repairTick();
-        this.repairInterval = setInterval(() => this.simulationService.repairTick(), 200);
+        this._repairTick(e.currentTarget);
+        this.repairInterval = setInterval(() => this._repairTick(e.currentTarget), 200);
     }
+
     _stopRepairing() {
         clearInterval(this.repairInterval);
         this.repairInterval = null;
+    }
+
+    _repairTick(buttonElement) {
+        const cost = this.simulationService.repairTick();
+        if (cost > 0) {
+            const rect = buttonElement.getBoundingClientRect();
+            this.uiManager.createFloatingText(`-${formatCredits(cost, false)}`, rect.left + rect.width / 2, rect.top, '#f87171');
+        } else {
+            this._stopRepairing();
+        }
     }
 }

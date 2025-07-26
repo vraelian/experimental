@@ -1,5 +1,6 @@
+// js/services/UIManager.js
 import { CONFIG } from '../data/config.js';
-import { SHIPS, COMMODITIES, MARKETS, LOCATION_VISUALS } from '../data/gamedata.js';
+import { SHIPS, COMMODITIES, MARKETS, LOCATION_VISUALS, PERKS } from '../data/gamedata.js';
 import { formatCredits, calculateInventoryUsed, getDateFromDay } from '../utils.js';
 
 export class UIManager {
@@ -8,6 +9,11 @@ export class UIManager {
         this.modalQueue = [];
         this.activeGraphAnchor = null;
         this._cacheDOM();
+
+        window.addEventListener('resize', () => {
+            this.isMobile = window.innerWidth <= 768;
+            // This will require a re-render call from the main controller when the state is available
+        });
     }
 
     _cacheDOM() {
@@ -50,9 +56,6 @@ export class UIManager {
             debugToast: document.getElementById('debug-toast'),
             graphTooltip: document.getElementById('graph-tooltip'),
         };
-         window.addEventListener('resize', () => {
-            this.isMobile = window.innerWidth <= 768;
-        });
     }
 
     render(gameState) {
@@ -340,7 +343,7 @@ export class UIManager {
         let price = gameState.market.prices[gameState.currentLocationId][goodId];
         const market = MARKETS.find(m => m.id === gameState.currentLocationId);
         if (isSelling && market.specialDemand && market.specialDemand[goodId]) {
-            price *= market.specialDemand[goodId].bonus;
+            price *= market.specialDemand[good.id].bonus;
         }
         const intel = gameState.intel.active;
         if (intel && intel.targetMarketId === gameState.currentLocationId && intel.commodityId === goodId) {
@@ -644,7 +647,6 @@ export class UIManager {
         };
     }
 
-    // --- Modals, Toasts, and Popups ---
     queueModal(modalId, title, description, callback = null, options = {}) {
         this.modalQueue.push({ modalId, title, description, callback, options });
         if (!document.querySelector('.modal-backdrop:not(.hidden)')) {

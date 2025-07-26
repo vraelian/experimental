@@ -1,3 +1,4 @@
+// js/services/GameState.js
 import { CONFIG } from '../data/config.js';
 import { SHIPS, COMMODITIES, MARKETS } from '../data/gamedata.js';
 import { DATE_CONFIG } from '../data/dateConfig.js';
@@ -32,17 +33,14 @@ export class GameState {
         this.TRAVEL_DATA = procedurallyGenerateTravelData(MARKETS);
     }
 
-    // --- Observer Pattern ---
     subscribe(callback) {
         this.subscribers.push(callback);
     }
 
     _notify() {
-        // Deep copy state to prevent direct mutation by subscribers
-        this.subscribers.forEach(callback => callback(JSON.parse(JSON.stringify(this))));
+        this.subscribers.forEach(callback => callback(this));
     }
 
-    // --- State Management ---
     setState(partialState) {
         Object.assign(this, partialState);
         this._notify();
@@ -53,11 +51,10 @@ export class GameState {
         return JSON.parse(JSON.stringify(this));
     }
 
-    // --- Save/Load ---
     saveGame() {
         try {
             const stateToSave = { ...this };
-            delete stateToSave.subscribers; // Don't save subscribers
+            delete stateToSave.subscribers;
             localStorage.setItem(CONFIG.SAVE_KEY, JSON.stringify(stateToSave));
         } catch (error) {
             console.error("Error saving game state:", error);
@@ -71,10 +68,7 @@ export class GameState {
             
             const loadedState = JSON.parse(serializedState);
             Object.assign(this, loadedState);
-
-            // Re-initialize non-serializable parts
             this.TRAVEL_DATA = procedurallyGenerateTravelData(MARKETS);
-            
             this._notify();
             return true;
         } catch (error) {
@@ -84,106 +78,57 @@ export class GameState {
         }
     }
 
-    // --- Game Initialization ---
     startNewGame(playerName) {
         const initialState = {
-            day: 1,
-            lastInterestChargeDay: 1,
-            lastMarketUpdateDay: 1,
-            currentLocationId: 'loc_mars',
-            currentView: 'travel-view',
-            isGameOver: false,
-            popupsDisabled: false,
+            day: 1, lastInterestChargeDay: 1, lastMarketUpdateDay: 1, currentLocationId: 'loc_mars', currentView: 'travel-view', isGameOver: false, popupsDisabled: false,
             pendingTravel: null,
             player: {
-                name: playerName,
-                playerTitle: 'Captain',
-                playerAge: 24,
-                lastBirthdayYear: DATE_CONFIG.START_YEAR,
-                birthdayProfitBonus: 0,
-                credits: CONFIG.STARTING_CREDITS,
-                debt: CONFIG.STARTING_DEBT,
-                weeklyInterestAmount: CONFIG.STARTING_DEBT_INTEREST,
-                loanStartDate: null,
-                seenGarnishmentWarning: false,
-                initialDebtPaidOff: false,
-                starportUnlocked: false,
-                unlockedCommodityLevel: 1,
-                unlockedLocationIds: ['loc_earth', 'loc_luna', 'loc_mars', 'loc_venus', 'loc_belt', 'loc_saturn'],
-                seenCommodityMilestones: [],
-                financeHistory: [{ value: CONFIG.STARTING_CREDITS, type: 'start', amount: 0 }],
-                activePerks: {},
-                seenEvents: [],
-                activeShipId: 'starter',
-                ownedShipIds: ['starter'],
-                shipStates: {},
-                inventories: {}
-            },
-            market: {
-                prices: {},
-                inventory: {},
-                galacticAverages: {},
-                priceHistory: {},
-            },
-            intel: {
-                active: null,
-                available: {}
-            },
-            tutorials: {
-                navigation: false,
-                market: false,
-                maintenance: false,
-                success: false,
-                starport: false
-            }
+                name: playerName, playerTitle: 'Captain', playerAge: 24, lastBirthdayYear: DATE_CONFIG.START_YEAR, birthdayProfitBonus: 0,
+                credits: CONFIG.STARTING_CREDITS, debt: CONFIG.STARTING_DEBT, weeklyInterestAmount: CONFIG.STARTING_DEBT_INTEREST,
+                loanStartDate: null, seenGarnishmentWarning: false, initialDebtPaidOff: false, starportUnlocked: false,
+                unlockedCommodityLevel: 1, unlockedLocationIds: ['loc_earth', 'loc_luna', 'loc_mars', 'loc_venus', 'loc_belt', 'loc_saturn'],
+                seenCommodityMilestones: [], financeHistory: [{ value: CONFIG.STARTING_CREDITS, type: 'start', amount: 0 }],
+                activePerks: {}, seenEvents: [], activeShipId: 'starter', ownedShipIds: ['starter'],
+                shipStates: { 'starter': { health: SHIPS.starter.maxHealth, fuel: SHIPS.starter.maxFuel, hullAlerts: { one: false, two: false } } },
+                inventories: { 'starter': {} }
+             },
+            market: { prices: {}, inventory: {}, galacticAverages: {}, priceHistory: {}, },
+            intel: { active: null, available: {} },
+            tutorials: { navigation: false, market: false, maintenance: false, success: false, starport: false }
         };
 
-        // Initialize ship states and inventories
-        initialState.player.ownedShipIds.forEach(shipId => {
-            const shipData = SHIPS[shipId];
-            initialState.player.shipStates[shipId] = { 
-                health: shipData.maxHealth, 
-                fuel: shipData.maxFuel,
-                hullAlerts: { one: false, two: false }
-            };
-            initialState.player.inventories[shipId] = {};
+        COMMODITIES.forEach(c => { initialState.player.inventories.starter[c.id] = { quantity: 0, avgCost: 0 }; });
+        MARKETS.forEach(m => {
+            initialState.market.priceHistory[m.id] = {};
+            initialState.intel.available[m.id] = (Math.random() < CONFIG.INTEL_CHANCE);
+            initialState.market.inventory[m.id] = {};
             COMMODITIES.forEach(c => {
-                initialState.player.inventories[shipId][c.id] = { quantity: 0, avgCost: 0 };
-            });
-        });
-
-        // Initialize market data
-        MARKETS.forEach(market => {
-            initialState.market.priceHistory[market.id] = {};
-            initialState.intel.available[market.id] = (Math.random() < CONFIG.INTEL_CHANCE);
-            initialState.market.inventory[market.id] = {};
-            COMMODITIES.forEach(c => {
-                initialState.market.priceHistory[market.id][c.id] = [];
+                initialState.market.priceHistory[m.id][c.id] = [];
                 const avail = this._getTierAvailability(c.tier);
                 let quantity = skewedRandom(avail.min, avail.max);
-                if (market.modifiers[c.id] && market.modifiers[c.id] > 1.0) quantity = Math.floor(quantity * 1.5);
-                if (market.specialDemand && market.specialDemand[c.id]) quantity = 0;
-                initialState.market.inventory[market.id][c.id] = { quantity: Math.max(0, quantity) };
-            });
+                if (m.modifiers[c.id] && m.modifiers[c.id] > 1.0) quantity = Math.floor(quantity * 1.5);
+                if (m.specialDemand && m.specialDemand[c.id]) quantity = 0;
+                initialState.market.inventory[m.id][c.id] = { quantity: Math.max(0, quantity) };
+             });
         });
         
         Object.assign(this, initialState);
         this._calculateGalacticAverages();
         this._seedInitialMarketPrices();
-        this._recordPriceHistory(); // Record initial prices
-        this.setState({}); // Notify subscribers and save
+        this._recordPriceHistory();
+        this.setState({});
     }
 
     _getTierAvailability(tier) {
         switch (tier) {
-            case 1: return { min: 6, max: 240, skew: 250 };
-            case 2: return { min: 4, max: 200, skew: 100 };
-            case 3: return { min: 3, max: 120, skew: 32 };
-            case 4: return { min: 2, max: 40, skew: 17 };
-            case 5: return { min: 1, max: 20, skew: 13 };
-            case 6: return { min: 0, max: 20, skew: 5 };
-            case 7: return { min: 0, max: 10, skew: 1 };
-            default: return { min: 0, max: 5, skew: 1 };
+            case 1: return { min: 6, max: 240 };
+            case 2: return { min: 4, max: 200 };
+            case 3: return { min: 3, max: 120 };
+            case 4: return { min: 2, max: 40 };
+            case 5: return { min: 1, max: 20 };
+            case 6: return { min: 0, max: 20 };
+            case 7: return { min: 0, max: 10 };
+            default: return { min: 0, max: 5 };
         }
     }
 

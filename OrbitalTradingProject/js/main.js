@@ -1,3 +1,4 @@
+// js/main.js
 import { GameState } from './services/GameState.js';
 import { SimulationService } from './services/SimulationService.js';
 import { UIManager } from './services/UIManager.js';
@@ -22,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const nameModal = document.getElementById('name-modal');
         const nameInput = document.getElementById('player-name-input');
         const buttonContainer = document.getElementById('name-modal-buttons');
-        buttonContainer.innerHTML = ''; // Clear any previous buttons
+        buttonContainer.innerHTML = '';
 
         const confirmButton = document.createElement('button');
         confirmButton.id = 'confirm-name-button';
@@ -56,14 +57,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const hasSave = gameState.loadGame();
         if (!hasSave) {
             gameState.startNewGame(playerName);
-            simulationService.showIntroSequence();
+            simulationService.showIntroSequence(); // This is the new line
         }
 
         // --- Bindings ---
-        eventManager.bindEvents(); // Bind all core event listeners
-        gameState.subscribe(() => uiManager.render(gameState)); // Re-render UI on every state change
+        eventManager.bindEvents();
+        gameState.subscribe(() => uiManager.render(gameState.getState()));
         
         // Initial render
-        uiManager.render(gameState);
+        uiManager.render(gameState.getState());
     }
 });
