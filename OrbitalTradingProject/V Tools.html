@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>V-Tools for Orbital Trading</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@400;700&family=Orbitron:wght@500;700&family=Roboto+Mono:wght@400;700&display=swap');
+        :root {
+            --dark-bg: #0c101d; --panel-bg: #1a253c; --border-color: #3a4a6a; --text-primary: #d0d8e8; --text-secondary: #a3b8ee;
+            --accent-blue: #60a5fa; --accent-green: #34d399; --accent-purple: #c084fc; --accent-orange: #f97316; --accent-red: #f87171; --accent-yellow: #fde047;
+        }
+        body {
+            font-family: 'Exo 2', sans-serif; background-color: var(--dark-bg); color: var(--text-primary);
+            margin: 0; padding: 2rem; box-sizing: border-box; display: flex; flex-direction: column; min-height: 100vh;
+        }
+        .main-container {
+            background: var(--panel-bg); border: 2px solid var(--border-color); border-radius: 15px;
+            width: 100%; max-width: 900px; margin: 0 auto; box-shadow: 0 0 40px rgba(58, 74, 106, 0.5);
+            display: flex; flex-direction: column; flex-grow: 1;
+        }
+        header { text-align: center; padding: 1.5rem 2.5rem; border-bottom: 2px solid var(--border-color); }
+        header h1 { font-family: 'Orbitron', sans-serif; color: var(--accent-blue); margin: 0; font-size: 2.5rem; }
+        nav { display: flex; justify-content: center; background: rgba(0,0,0,0.2); padding: 0.5rem 0; }
+        .nav-btn {
+            font-family: 'Orbitron', sans-serif; padding: 0.75rem 1rem; color: var(--text-secondary); cursor: pointer;
+            border: none; background: none; font-size: 0.9rem; transition: all 0.3s ease; border-bottom: 3px solid transparent;
+        }
+        .nav-btn.active { color: var(--accent-blue); border-bottom-color: var(--accent-blue); }
+        .nav-btn:hover:not(.active) { color: white; }
+        .tool-page { display: none; padding: 2.5rem; flex-grow: 1; }
+        .tool-page.active { display: block; }
+        .tool-page h2 { font-family: 'Orbitron', sans-serif; margin-top: 0; margin-bottom: 1rem; font-size: 1.75rem; text-align: center; }
+        .tool-page p { color: var(--text-secondary); line-height: 1.6; max-width: 600px; margin: 0 auto 1.5rem auto; text-align: center; }
+        .btn-container { text-align: center; margin: 1.5rem 0; display: flex; justify-content: center; gap: 1rem; }
+        .btn {
+            display: inline-block; transition: all 0.3s ease; border: 1px solid var(--border-color);
+            border-radius: 8px; background-color: #22304a; font-family: 'Orbitron', sans-serif;
+            letter-spacing: 1px; padding: 0.75rem 1.5rem; color: #c0d0f0; cursor: pointer; font-size: 1rem;
+        }
+        .btn:hover:not(:disabled) { background-color: #32405a; color: #e0f0ff; transform: translateY(-2px); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .status-box {
+            margin-top: 1.5rem; background-color: rgba(12, 16, 29, 0.5); padding: 1rem;
+            border-radius: 8px; min-height: 100px; text-align: left; font-family: 'Roboto Mono', monospace;
+            white-space: pre-wrap; line-height: 1.5; border: 1px solid var(--border-color); overflow-x: auto;
+        }
+        .log-container {
+            width: 100%; max-width: 900px; margin: 1.5rem auto 0 auto;
+            background: #111827; border-radius: 8px; padding: 1rem;
+            border: 1px solid var(--border-color);
+        }
+        .log-container h3 { margin: 0 0 0.5rem 0; font-family: 'Orbitron'; color: var(--text-secondary); }
+        #log-output {
+            font-family: 'Roboto Mono', monospace; font-size: 0.8rem; color: #9ca3af;
+            max-height: 150px; overflow-y: auto; white-space: pre-wrap;
+        }
+        /* Page-specific themes */
+        #page-cache-buster .nav-btn.active, #page-cache-buster h2 { color: var(--accent-blue); border-bottom-color: var(--accent-blue); }
+        #page-validator .nav-btn.active, #page-validator h2 { color: var(--accent-green); border-bottom-color: var(--accent-green); }
+        #page-travel .nav-btn.active, #page-travel h2 { color: var(--accent-purple); border-bottom-color: var(--accent-purple); }
+        #page-events .nav-btn.active, #page-events h2 { color: var(--accent-orange); border-bottom-color: var(--accent-orange); }
+        #page-cname .nav-btn.active, #page-cname h2 { color: var(--accent-red); border-bottom-color: var(--accent-red); }
+
+        .text-input {
+            width: 100%; max-width: 400px; margin: 0 auto; display: block;
+            background-color: rgba(12, 16, 29, 0.8); border: 1px solid var(--border-color);
+            color: #e0e0e0; border-radius: 6px; padding: 0.75rem; text-align: center; font-family: 'Roboto Mono';
+        }
+        .success { color: var(--accent-green); } .error { color: var(--accent-red); } .warn { color: var(--accent-yellow); } .info { color: var(--accent-blue); }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <header><h1>V-Tools</h1></header>
+        <nav>
+            <button class="nav-btn active" data-page="page-cache-buster">Cache Buster</button>
+            <button class="nav-btn" data-page="page-validator">Data Validator</button>
+            <button class="nav-btn" data-page="page-travel">Travel Simulator</button>
+            <button class="nav-btn" data-page="page-events">Event Tester</button>
+            <button class="nav-btn" data-page="page-cname">CNAME Gen</button>
+        </nav>
+        <main>
+            <div id="page-cache-buster" class="tool-page active">
+                <h2>Engineering Bay // Cache Buster</h2>
+                <p>Select your <strong>index.html</strong> file. This tool will append the current timestamp to all JS/CSS links to ensure your browser always loads the latest changes.</p>
+                <div class="btn-container">
+                    <input type="file" id="buster-file-input" accept=".html" style="display: none;">
+                    <button class="btn" onclick="document.getElementById('buster-file-input').click();">1. Select index.html</button>
+                    <button id="buster-save-btn" class="btn" disabled>2. Save Updated index.html</button>
+                </div>
+                <div id="buster-status" class="status-box">Awaiting file selection...</div>
+            </div>
+
+            <div id="page-validator" class="tool-page">
+                <h2>Data Core // Game Data Validator</h2>
+                <p>Select your <strong>gamedata.js</strong> file to check for common data integrity issues like invalid IDs or structural errors.</p>
+                <div class="btn-container">
+                    <input type="file" id="validator-file-input" accept=".js" style="display: none;">
+                    <button class="btn" onclick="document.getElementById('validator-file-input').click();">Select gamedata.js</button>
+                </div>
+                <div id="validator-status" class="status-box">Awaiting file selection...</div>
+            </div>
+
+            <div id="page-travel" class="tool-page">
+                <h2>Astrometrics // Travel Data Simulator</h2>
+                <p>Select both <strong>GameState.js</strong> and <strong>gamedata.js</strong> to execute the procedural travel data generation and view the results.</p>
+                 <div class="btn-container">
+                    <input type="file" id="gamestate-file-input" accept=".js" style="display: none;">
+                    <input type="file" id="gamedata-file-input-travel" accept=".js" style="display: none;">
+                    <button class="btn" onclick="document.getElementById('gamestate-file-input').click();">Select GameState.js</button>
+                    <button class="btn" onclick="document.getElementById('gamedata-file-input-travel').click();">Select gamedata.js</button>
+                </div>
+                <div id="travel-status" class="status-box" style="overflow-x: auto;">Awaiting file selections...</div>
+            </div>
+
+            <div id="page-events" class="tool-page">
+                 <h2>Sim-Deck // Event Precondition Tester</h2>
+                <p>Select <strong>gamedata.js</strong> to test the logic of random event preconditions against an editable mock game state.</p>
+                <div class="btn-container">
+                    <input type="file" id="events-file-input" accept=".js" style="display: none;">
+                    <button class="btn" onclick="document.getElementById('events-file-input').click();">Select gamedata.js</button>
+                </div>
+                <div id="events-status" class="status-box">Awaiting file selection...</div>
+            </div>
+
+            <div id="page-cname" class="tool-page">
+                <h2>Comms Relay // CNAME Generator</h2>
+                <p>Enter your custom domain name for GitHub Pages and download the resulting CNAME file.</p>
+                <input type="text" id="cname-input" class="text-input" placeholder="orbitaltradinggame.com">
+                <div class="btn-container" style="display: block;">
+                    <button id="cname-generate-btn" class="btn">Generate & Download</button>
+                </div>
+                <div id="cname-status" class="status-box">Awaiting domain input...</div>
+            </div>
+        </main>
+    </div>
+
+    <div class="log-container">
+        <h3>SYSTEM LOG</h3>
+        <div id="log-output"></div>
+    </div>
+
+<script>
+    (() => {
+        // --- Global State & Utility ---
+        const logOutput = document.getElementById('log-output');
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const typeIndicator = { 'info': 'I', 'success': 'S', 'warn': 'W', 'error': 'E' }[type];
+            logOutput.innerHTML += `[${timestamp}] [${typeIndicator}] ${message}\n`;
+            logOutput.scrollTop = logOutput.scrollHeight;
+        }
+
+        // --- Navigation ---
+        const navButtons = document.querySelectorAll('.nav-btn');
+        const toolPages = document.querySelectorAll('.tool-page');
+        navButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const targetPage = button.dataset.page;
+                navButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                toolPages.forEach(page => page.classList.toggle('active', page.id === targetPage));
+                log(`Mapsd to ${button.textContent}.`);
+            });
+        });
+
+        // --- File Utility ---
+        function extractFromScript(fileContent, name) {
+            try {
+                const cleanContent = fileContent.replace(/export /g, '').replace(/import .* from .*/g, '');
+                const scriptFunction = new Function(`${cleanContent}\nreturn { ${name} };`);
+                const result = scriptFunction();
+                if (result[name]) return result[name];
+                throw new Error(`'${name}' not found.`);
+            } catch (e) {
+                log(`Failed to parse JS file: ${e.message}`, 'error');
+                return null;
+            }
+        }
+
+        // --- PAGE 1: CACHE BUSTER ---
+        let busterState = { updatedContent: null };
+        const busterFileInput = document.getElementById('buster-file-input');
+        const busterSaveBtn = document.getElementById('buster-save-btn');
+        const busterStatusEl = document.getElementById('buster-status');
+        const filesToBust = [ // All files linked or imported
+            './style.css', './js/main.js', './js/utils.js',
+            './js/data/config.js', './js/data/gamedata.js', './js/data/dateConfig.js',
+            './js/services/GameState.js', './js/services/SimulationService.js', './js/services/UIManager.js', './js/services/EventManager.js'
+        ];
+
+        busterFileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            log(`Selected ${file.name} for cache busting.`);
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                let htmlContent = e.target.result;
+                let changesLog = `Processing ${file.name}...\n`;
+                const newTimestamp = Date.now();
+                
+                // This regex finds all src/href attributes for the target files and replaces their version query string.
+                const fileRegex = /(href|src)="(.*?)"/g;
+                let match;
+                let replacements = [];
+
+                while ((match = fileRegex.exec(htmlContent)) !== null) {
+                    const attribute = match[1]; // href or src
+                    let path = match[2]; // e.g., ./js/main.js?v=12345
+                    const pathOnly = path.split('?')[0]; // e.g., ./js/main.js
+                    
+                    if (filesToBust.includes(pathOnly)) {
+                        const newPath = `${pathOnly}?v=${newTimestamp}`;
+                        replacements.push({ old: match[0], new: `${attribute}="${newPath}"` });
+                    }
+                }
+                
+                if (replacements.length > 0) {
+                     replacements.forEach(rep => {
+                        htmlContent = htmlContent.replace(rep.old, rep.new);
+                        changesLog += `<span class="success">✓ Updated ${rep.new.split('"')[1].split('?')[0]}</span>\n`;
+                    });
+                    busterStatusEl.innerHTML = changesLog + `\n<span class="info">Updated links with timestamp: ${newTimestamp}</span>\nReady to save.`;
+                    busterState.updatedContent = htmlContent;
+                    busterSaveBtn.disabled = false;
+                    log('Cache busting successful. Ready to save.', 'success');
+                } else {
+                    busterStatusEl.innerHTML = `<span class="warn">⚠️ No recognized JS or CSS links found to update.</span>`;
+                    busterState.updatedContent = null;
+                    busterSaveBtn.disabled = true;
+                    log('No links found for cache busting.', 'warn');
+                }
+            };
+            reader.readAsText(file);
+        });
+        
+        busterSaveBtn.addEventListener('click', () => {
+            if (!busterState.updatedContent) return;
+            const blob = new Blob([busterState.updatedContent], { type: 'text/html' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'index.html'; // Download as index.html for easy replacement
+            link.click();
+            URL.revokeObjectURL(link.href);
+            log('Saved updated index.html.', 'success');
+            busterStatusEl.innerHTML += '\n<span class="success">Download initiated. Overwrite your old index.html.</span>';
+            busterSaveBtn.disabled = true;
+        });
+
+        // --- PAGE 2: DATA VALIDATOR LOGIC ---
+        const validatorFileInput = document.getElementById('validator-file-input');
+        const validatorStatusEl = document.getElementById('validator-status');
+        validatorFileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0]; if (!file) return;
+            log(`Selected ${file.name} for validation.`);
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const content = e.target.result;
+                const SHIPS = extractFromScript(content, 'SHIPS');
+                const MARKETS = extractFromScript(content, 'MARKETS');
+                const AGE_EVENTS = extractFromScript(content, 'AGE_EVENTS');
+                const PERKS = extractFromScript(content, 'PERKS');
+                if (!SHIPS || !MARKETS || !AGE_EVENTS || !PERKS) { validatorStatusEl.innerHTML = `<span class="error">Error: Could not extract required data objects.</span>`; return; }
+                let results = `Validation Results for ${file.name}:\n`; let errors = 0;
+                const marketIds = MARKETS.map(m => m.id); const perkIds = Object.keys(PERKS);
+                for (const shipId in SHIPS) {
+                    const ship = SHIPS[shipId];
+                    if (ship.saleLocationId && !marketIds.includes(ship.saleLocationId)) { results += `<span class="error">✗ Ship '${ship.name}' has invalid saleLocationId '${ship.saleLocationId}'.</span>\n`; errors++; }
+                }
+                AGE_EVENTS.forEach(event => {
+                    event.choices.forEach(choice => {
+                        if (choice.perkId && !perkIds.includes(choice.perkId) && choice.perkId !== 'merchant_guild_ship') { results += `<span class="error">✗ Age event '${event.id}' has invalid perkId '${choice.perkId}'.</span>\n`; errors++; }
+                    });
+                });
+                if (errors === 0) { results += `<span class="success">✓ All checks passed.</span>`; log('gamedata.js validation passed.', 'success');
+                } else { log(`gamedata.js validation failed with ${errors} error(s).`, 'error'); }
+                validatorStatusEl.innerHTML = results;
+            };
+            reader.readAsText(file);
+        });
+
+        // --- PAGE 3: TRAVEL SIMULATOR LOGIC ---
+        const gameStateFileInput = document.getElementById('gamestate-file-input');
+        const gameDataFileInputTravel = document.getElementById('gamedata-file-input-travel');
+        const travelStatusEl = document.getElementById('travel-status');
+        let travelSimState = { gameStateContent: null, gameDataContent: null };
+
+        function attemptTravelSimulation() {
+            if (!travelSimState.gameStateContent || !travelSimState.gameDataContent) return;
+            log('Both files loaded, attempting travel simulation.');
+            const markets = extractFromScript(travelSimState.gameDataContent, 'MARKETS');
+            const simFunctionRaw = extractFromScript(travelSimState.gameStateContent, 'procedurallyGenerateTravelData');
+            if (!markets || !simFunctionRaw) { travelStatusEl.innerHTML = `<span class="error">Failed to extract MARKETS or simulation function.</span>`; return; }
+            try {
+                const simFunction = new Function('markets', `return (${simFunctionRaw.toString()})(markets)`);
+                const travelData = simFunction(markets);
+                let tableHtml = `<table class="travel-table"><thead><tr><th>From / To</th>`;
+                markets.forEach(m => tableHtml += `<th>${m.name}</th>`);
+                tableHtml += `</tr></thead><tbody>`;
+                markets.forEach(from => {
+                    tableHtml += `<tr><td><strong>${from.name}</strong></td>`;
+                    markets.forEach(to => {
+                        if (from.id === to.id) { tableHtml += `<td>-</td>`; } 
+                        else { const data = travelData[from.id][to.id]; tableHtml += `<td>${data.time}d / ${data.fuelCost}f</td>`; }
+                    });
+                    tableHtml += `</tr>`;
+                });
+                tableHtml += `</tbody></table>`;
+                travelStatusEl.innerHTML = tableHtml;
+                log('Travel data simulation successful.', 'success');
+            } catch (err) {
+                 travelStatusEl.innerHTML = `<span class="error">Error executing simulation: ${err.message}</span>`;
+                 log(`Travel simulation failed: ${err.message}`, 'error');
+            }
+        }
+        gameStateFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0]; if (!file) return; log(`Selected ${file.name}.`);
+            const reader = new FileReader(); reader.onload = (re) => { travelSimState.gameStateContent = re.target.result; attemptTravelSimulation(); }; reader.readAsText(file);
+        });
+        gameDataFileInputTravel.addEventListener('change', (e) => {
+            const file = e.target.files[0]; if (!file) return; log(`Selected ${file.name}.`);
+            const reader = new FileReader(); reader.onload = (re) => { travelSimState.gameDataContent = re.target.result; attemptTravelSimulation(); }; reader.readAsText(file);
+        });
+
+        // --- PAGE 4: EVENT TESTER LOGIC ---
+        const eventsFileInput = document.getElementById('events-file-input');
+        const eventsStatusEl = document.getElementById('events-status');
+        let loadedRandomEvents = [];
+        const defaultMockState = JSON.stringify({ player: { credits: 10000 }, currentLocationId: 'loc_mars' }, null, 2);
+        const defaultMockShip = JSON.stringify({ fuel: 50, maxFuel: 100, health: 100, maxHealth: 100 }, null, 2);
+        const defaultMockInventory = JSON.stringify({ 'plasteel': { quantity: 10 }, 'water_ice': { quantity: 50 } }, null, 2);
+
+        function runEventTests() {
+            try {
+                const gameState = JSON.parse(document.getElementById('mock-gamestate').value);
+                const activeShip = JSON.parse(document.getElementById('mock-shipstate').value);
+                const inventory = JSON.parse(document.getElementById('mock-inventory').value);
+                const getActiveInventory = () => inventory;
+                let resultsHtml = '';
+                loadedRandomEvents.forEach(event => {
+                    const preconditionFunc = new Function('gameState', 'activeShip', 'getActiveInventory', `return (${event.precondition.toString()})(gameState, activeShip, getActiveInventory)`);
+                    const passed = preconditionFunc(gameState, activeShip, getActiveInventory);
+                    resultsHtml += `<li class="${passed ? 'success' : 'error'}"><strong>${event.title}:</strong> ${passed ? '✓ PASSED' : '✗ FAILED'}</li>`;
+                });
+                document.getElementById('event-results').innerHTML = resultsHtml;
+                log('Ran event precondition tests.', 'success');
+            } catch (e) {
+                document.getElementById('event-results').innerHTML = `<li class="error">Error: ${e.message}</li>`;
+                log(`Event precondition test failed: ${e.message}`, 'error');
+            }
+        }
+        eventsFileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0]; if (!file) return; log(`Selected ${file.name} for event testing.`);
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const content = e.target.result;
+                loadedRandomEvents = extractFromScript(content, 'RANDOM_EVENTS');
+                if (loadedRandomEvents) {
+                    let html = `<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem;"><div><label>Mock GameState:</label><textarea id="mock-gamestate">${defaultMockState}</textarea></div><div><label>Mock ActiveShip:</label><textarea id="mock-shipstate">${defaultMockShip}</textarea></div><div><label>Mock Inventory:</label><textarea id="mock-inventory">${defaultMockInventory}</textarea></div></div><div class="btn-container" style="display: block;"><button id="run-event-tests-btn" class="btn">Run Tests</button></div><ul id="event-results" class="event-list"></ul>`;
+                    eventsStatusEl.innerHTML = html;
+                    document.getElementById('run-event-tests-btn').addEventListener('click', runEventTests);
+                    log('gamedata.js loaded for event testing.', 'success');
+                } else { eventsStatusEl.innerHTML = `<span class="error">Could not extract RANDOM_EVENTS from file.</span>`; }
+            };
+            reader.readAsText(file);
+        });
+
+        // --- PAGE 5: CNAME GENERATOR LOGIC ---
+        const cnameInput = document.getElementById('cname-input');
+        const cnameGenerateBtn = document.getElementById('cname-generate-btn');
+        const cnameStatusEl = document.getElementById('cname-status');
+        cnameGenerateBtn.addEventListener('click', () => {
+            const domain = cnameInput.value.trim();
+            if (!domain) { cnameStatusEl.innerHTML = `<span class="warn">Please enter a domain name.</span>`; log('CNAME generation failed: No domain provided.', 'warn'); return; }
+            const blob = new Blob([domain], { type: 'text/plain' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'CNAME';
+            link.click();
+            URL.revokeObjectURL(link.href);
+            cnameStatusEl.innerHTML = `<span class="success">CNAME file for '${domain}' downloaded.</span>`;
+            log(`Generated CNAME file for ${domain}.`, 'success');
+        });
+
+        log("V-Tools initialized.");
+    })();
+</script>
+</body>
+</html>
