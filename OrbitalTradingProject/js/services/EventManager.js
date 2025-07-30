@@ -90,14 +90,20 @@ export class EventManager {
         }
         
         // --- Lore/Tutorial Tooltip Handling (All Devices) ---
+        const tutorialTrigger = e.target.closest('.tutorial-container');
         const loreTrigger = e.target.closest('.lore-container');
+
+        const visibleTooltip = document.querySelector('.lore-tooltip.visible, .tutorial-tooltip.visible');
+        if (visibleTooltip && !e.target.closest('.lore-tooltip, .tutorial-tooltip')) {
+            visibleTooltip.classList.remove('visible');
+        }
+        
         if (loreTrigger) {
             const tooltip = loreTrigger.querySelector('.lore-tooltip');
             if (tooltip) tooltip.classList.toggle('visible');
             return;
         }
 
-        const tutorialTrigger = e.target.closest('.tutorial-container');
         if (tutorialTrigger) {
             this.uiManager.showTutorialLogModal({
                 seenBatches: this.gameState.tutorials.seenBatchIds,
@@ -106,12 +112,6 @@ export class EventManager {
                 }
             });
             return;
-        }
-
-        const wasClickInsideTooltip = e.target.closest('.lore-tooltip, .tutorial-tooltip');
-        const visibleTooltip = document.querySelector('.lore-tooltip.visible, .tutorial-tooltip.visible');
-        if (visibleTooltip && !wasClickInsideTooltip) {
-            visibleTooltip.classList.remove('visible');
         }
 
         // --- Standard Action Handling ---

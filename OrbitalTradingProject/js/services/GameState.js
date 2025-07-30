@@ -95,7 +95,12 @@ export class GameState {
              },
             market: { prices: {}, inventory: {}, galacticAverages: {}, priceHistory: {}, },
             intel: { active: null, available: {} },
-            tutorials: { navigation: false, market: false, maintenance: false, success: false, starport: false }
+            tutorials: {
+                activeBatchId: null,
+                activeStepId: null,
+                seenBatchIds: [],
+                skippedTutorialBatches: []
+            }
         };
 
         COMMODITIES.forEach(c => { initialState.player.inventories.starter[c.id] = { quantity: 0, avgCost: 0 }; });

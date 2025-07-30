@@ -229,8 +229,11 @@
     </div>
 
     <div id="tutorial-toast-container" class="hidden fixed z-40 p-4 rounded-lg shadow-2xl transition-all duration-300 pointer-events-auto">
-        <p id="tutorial-toast-text" class="text-lg"></p>
-        <button id="tutorial-toast-skip-btn" class="absolute top-2 right-2 text-xl font-bold">&times;</button>
+        <button id="tutorial-toast-skip-btn" class="absolute top-1 right-2 text-2xl font-bold opacity-70 hover:opacity-100">&times;</button>
+        <p id="tutorial-toast-text" class="text-lg pr-6"></p>
+        <div class="mt-3 text-right">
+            <button id="tutorial-toast-next-btn" class="btn btn-sm">Next &rarr;</button>
+        </div>
     </div>
     
     <div id="skip-tutorial-modal" class="modal-backdrop hidden">

@@ -686,18 +686,21 @@ body {
     background-image: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0) 100%);
     background-repeat: no-repeat;
     background-size: 200px 100%;
+    z-index: 100; /* Ensure it is on top of other elements */
 }
 
 .tutorial-highlight {
     animation: green-pulse 2s infinite;
     border-radius: 8px; /* Ensure pulse has nice rounded corners */
     position: relative; /* Needed for z-index to work */
-    z-index: 45; /* Make sure it's above other elements but below the toast */
+    z-index: 99; /* Make sure it's above other elements but below the toast */
 }
 
 /* Positioning Helpers */
 .tt-top-center { top: 15%; left: 50%; transform: translateX(-50%); }
-/* Add more as needed: .tt-left, .tt-right, .tt-bottom-center etc. */
+.tt-left { top: 50%; left: 2%; transform: translateY(-50%); }
+.tt-right { top: 50%; right: 2%; transform: translateY(-50%); }
+/* Add more as needed: .tt-center, .tt-bottom-center etc. */
 
 
 @media (max-width: 768px) {
@@ -844,4 +847,5 @@ body {
 }
 .active-view {
     display: block;
+}
 }

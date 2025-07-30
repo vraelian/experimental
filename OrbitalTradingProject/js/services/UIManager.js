@@ -60,6 +60,7 @@ export class UIManager {
             tutorialToastContainer: document.getElementById('tutorial-toast-container'),
             tutorialToastText: document.getElementById('tutorial-toast-text'),
             tutorialToastSkipBtn: document.getElementById('tutorial-toast-skip-btn'),
+            tutorialToastNextBtn: document.getElementById('tutorial-toast-next-btn'),
             skipTutorialModal: document.getElementById('skip-tutorial-modal'),
             skipTutorialConfirmBtn: document.getElementById('skip-tutorial-confirm-btn'),
             skipTutorialCancelBtn: document.getElementById('skip-tutorial-cancel-btn'),
@@ -888,24 +889,26 @@ export class UIManager {
 
     // --- Tutorial System Methods ---
 
-    showTutorialToast({ step, onSkip }) {
-        const { text, highlightElementId, position, size } = step;
+    showTutorialToast({ step, onSkip, onNext }) {
+        const { text, highlightElementId, position, size, completion } = step;
         const toast = this.cache.tutorialToastContainer;
         
         this.cache.tutorialToastText.innerHTML = text;
         this.applyTutorialHighlight(highlightElementId);
 
         // Positioning
-        toast.className = 'hidden fixed z-40 p-4 rounded-lg shadow-2xl transition-all duration-300 pointer-events-auto'; // Reset classes
-        if (!this.isMobile && position.desktop) {
-            toast.classList.add(`tt-${position.desktop}`);
-        }
+        toast.className = 'hidden fixed p-4 rounded-lg shadow-2xl transition-all duration-300 pointer-events-auto'; // Reset classes
+        toast.classList.add(`tt-${this.isMobile ? 'mobile' : position.desktop}`);
         
         // Size
         toast.style.width = size?.width || 'auto';
 
         toast.classList.remove('hidden');
         
+        // Button visibility and actions
+        const isInfoStep = completion.type === 'INFO';
+        this.cache.tutorialToastNextBtn.style.display = isInfoStep ? 'inline-block' : 'inline-block'; // Always show for now
+        this.cache.tutorialToastNextBtn.onclick = onNext;
         this.cache.tutorialToastSkipBtn.onclick = onSkip;
     }
 
