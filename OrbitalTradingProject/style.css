@@ -1,3 +1,4 @@
+/* style.css */
 body {
     font-family: 'Exo 2', sans-serif;
     background-color: #0c101d;
@@ -111,13 +112,6 @@ body {
 }
 .modal-content p {
     text-align: center;
-}
-.tutorial-modal .modal-content {
-    border-color: #2dd4bf;
-    background: radial-gradient(circle, #0d2a2a 0%, #0c101d 100%);
-}
-.tutorial-modal .modal-content h3 {
-    color: #5eead4;
 }
 
 .age-event-modal .modal-content {
@@ -671,6 +665,40 @@ body {
     text-align: center;
 }
 
+/* --- Tutorial Toast System (TTS) Styles --- */
+@keyframes shimmer {
+    0% { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+}
+@keyframes green-pulse {
+    0% { box-shadow: 0 0 12px rgba(16, 185, 129, 0.6); }
+    50% { box-shadow: 0 0 24px rgba(52, 211, 153, 0.9); }
+    100% { box-shadow: 0 0 12px rgba(16, 185, 129, 0.6); }
+}
+
+#tutorial-toast-container {
+    background-color: rgba(13, 42, 42, 0.95);
+    color: #f0fff0;
+    border: 2px solid transparent;
+    border-image: linear-gradient(to right, #d4af37, #fde047, #d4af37);
+    border-image-slice: 1;
+    animation: shimmer 4s linear infinite, green-pulse 2.5s infinite ease-in-out;
+    background-image: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0) 100%);
+    background-repeat: no-repeat;
+    background-size: 200px 100%;
+}
+
+.tutorial-highlight {
+    animation: green-pulse 2s infinite;
+    border-radius: 8px; /* Ensure pulse has nice rounded corners */
+    position: relative; /* Needed for z-index to work */
+    z-index: 45; /* Make sure it's above other elements but below the toast */
+}
+
+/* Positioning Helpers */
+.tt-top-center { top: 15%; left: 50%; transform: translateX(-50%); }
+/* Add more as needed: .tt-left, .tt-right, .tt-bottom-center etc. */
+
 
 @media (max-width: 768px) {
     /* --- General Mobile Layout --- */
@@ -775,6 +803,17 @@ body {
         width: 80%;
         max-width: 300px;
         text-align: center;
+    }
+
+    /* --- Mobile Tutorial Toast Override --- */
+    #tutorial-toast-container {
+        top: auto !important;
+        bottom: 1rem !important;
+        left: 1rem !important;
+        right: 1rem !important;
+        transform: none !important;
+        width: auto !important;
+        max-width: 100%;
     }
 }
 #feedback-button-container {

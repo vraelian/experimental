@@ -37,19 +37,16 @@ export class GameState {
         this.subscribers.push(callback);
     }
 
-    _notify(previousState) {
-        const currentState = this.getState();
-        this.subscribers.forEach(callback => callback(currentState, previousState));
+    _notify() {
+        this.subscribers.forEach(callback => callback(this));
     }
 
     setState(partialState) {
-        const previousState = this.getState(); // Get a deep copy of the old state
         Object.assign(this, partialState);
-        this._notify(previousState);
+        this._notify();
         // this.saveGame();
     }
     
-    // Returns a deep copy of the current state for comparisons
     getState() {
         return JSON.parse(JSON.stringify(this));
     }

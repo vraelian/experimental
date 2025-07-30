@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Orbital Trading v19.012</title>
+    <title>Orbital Trading v19.01</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;700&family=Orbitron:wght@500;700&family=Roboto+Mono:wght@400;700&family=Aldrich&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./style.css?v=1753665124180">
@@ -23,7 +23,7 @@
         </div>
 
         <footer class="absolute bottom-4 text-center text-slate-500 text-sm w-full">
-            <p id="version-display">Version 19.012</p>
+            <p id="version-display">Version 19.01</p>
             <a href="https://docs.google.com/forms/d/e/1FAIpQLSeVqjUEC6nsZlxTQ9-vzz0_fHO0ng8w0AueZaGzkHPoLJIBDA/viewform?usp=header" target="_blank" class="hover:text-cyan-300 transition-colors"><span class="hl">Submit Playtesting Feedback</span></a>
             <p class="mt-1">Designed by Devon C.</p>
         </footer>
@@ -147,8 +147,9 @@
                     </a>
                     <div id="tutorial-button-container" class="tutorial-container">
                         Tutorial
-                        <div class="tutorial-tooltip">
-                            <p>This is a placeholder for the tutorial information.</p>
+                        <div id="tutorial-log-modal" class="tutorial-tooltip">
+                            <h3 id="tutorial-log-title" class="text-2xl font-orbitron mb-4 text-center">Tutorial Log</h3>
+                            <ul id="tutorial-log-list" class="space-y-2"></ul>
                         </div>
                     </div>
                 </div>
@@ -227,11 +228,19 @@
         </div>
     </div>
 
-    <div id="tutorial-modal" class="modal-backdrop hidden tutorial-modal">
+    <div id="tutorial-toast-container" class="hidden fixed z-40 p-4 rounded-lg shadow-2xl transition-all duration-300 pointer-events-auto">
+        <p id="tutorial-toast-text" class="text-lg"></p>
+        <button id="tutorial-toast-skip-btn" class="absolute top-2 right-2 text-xl font-bold">&times;</button>
+    </div>
+    
+    <div id="skip-tutorial-modal" class="modal-backdrop hidden">
         <div class="modal-content">
-            <h3 id="tutorial-title" class="text-2xl font-orbitron mb-4"></h3>
-            <p id="tutorial-description" class="mb-6 text-lg"></p>
-            <button id="tutorial-ok-button" class="btn px-6 py-2"></button>
+            <h3 id="skip-tutorial-title" class="text-2xl font-orbitron mb-4">Skip Tutorial?</h3>
+            <p id="skip-tutorial-description" class="mb-6 text-lg">Are you sure you want to skip the rest of this tutorial? You can replay it later from the tutorial log.</p>
+            <div id="skip-tutorial-button-container" class="mt-6 flex justify-center gap-4">
+                 <button id="skip-tutorial-confirm-btn" class="btn bg-red-800/80">Yes, Skip</button>
+                 <button id="skip-tutorial-cancel-btn" class="btn">No, Cancel</button>
+            </div>
         </div>
     </div>
 

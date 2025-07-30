@@ -4,10 +4,11 @@ import { SHIPS, COMMODITIES, MARKETS } from '../data/gamedata.js';
 import { calculateInventoryUsed } from '../utils.js';
 
 export class EventManager {
-    constructor(gameState, simulationService, uiManager) {
+    constructor(gameState, simulationService, uiManager, tutorialService) {
         this.gameState = gameState;
         this.simulationService = simulationService;
         this.uiManager = uiManager;
+        this.tutorialService = tutorialService;
         
         this.refuelInterval = null;
         this.repairInterval = null;
@@ -89,12 +90,24 @@ export class EventManager {
         }
         
         // --- Lore/Tutorial Tooltip Handling (All Devices) ---
-        const loreTrigger = e.target.closest('.lore-container, .tutorial-container');
+        const loreTrigger = e.target.closest('.lore-container');
         if (loreTrigger) {
-            const tooltip = loreTrigger.querySelector('.lore-tooltip, .tutorial-tooltip');
+            const tooltip = loreTrigger.querySelector('.lore-tooltip');
             if (tooltip) tooltip.classList.toggle('visible');
             return;
         }
+
+        const tutorialTrigger = e.target.closest('.tutorial-container');
+        if (tutorialTrigger) {
+            this.uiManager.showTutorialLogModal({
+                seenBatches: this.gameState.tutorials.seenBatchIds,
+                onSelect: (batchId) => {
+                    this.tutorialService.triggerBatch(batchId);
+                }
+            });
+            return;
+        }
+
         const wasClickInsideTooltip = e.target.closest('.lore-tooltip, .tutorial-tooltip');
         const visibleTooltip = document.querySelector('.lore-tooltip.visible, .tutorial-tooltip.visible');
         if (visibleTooltip && !wasClickInsideTooltip) {
@@ -105,14 +118,20 @@ export class EventManager {
         const actionTarget = e.target.closest('[data-action]');
         if (actionTarget) {
             const { action, goodId, locationId, viewId, shipId, loanDetails, cost } = actionTarget.dataset;
+            let actionData = null;
             
             switch(action) {
-                case 'set-view': this.simulationService.setView(viewId); break;
-                case 'travel': this.simulationService.travelTo(locationId); break;
+                case 'set-view':
+                    this.simulationService.setView(viewId);
+                    break;
+                case 'travel':
+                    this.simulationService.travelTo(locationId);
+                    break;
                 case 'buy-ship': 
                     if (this.simulationService.buyShip(shipId)) {
                         const price = SHIPS[shipId].price;
                         this.uiManager.createFloatingText(`-${formatCredits(price, false)}`, e.clientX, e.clientY, '#f87171');
+                        actionData = { type: 'ACTION', action: 'buy-ship' };
                     }
                     break;
                 case 'sell-ship':
@@ -121,7 +140,10 @@ export class EventManager {
                         this.uiManager.createFloatingText(`+${formatCredits(salePrice, false)}`, e.clientX, e.clientY, '#34d399');
                     }
                     break;
-                case 'select-ship': this.simulationService.setActiveShip(shipId); break;
+                case 'select-ship':
+                    this.simulationService.setActiveShip(shipId);
+                    actionData = { type: 'ACTION', action: 'select-ship' };
+                    break;
                 case 'pay-debt': this.simulationService.payOffDebt(); break;
                 case 'take-loan': this.simulationService.takeLoan(JSON.parse(loanDetails)); break;
                 case 'purchase-intel': this.simulationService.purchaseIntel(parseInt(cost)); break;
@@ -143,6 +165,7 @@ export class EventManager {
                             const color = action === 'buy' ? '#f87171' : '#34d399';
                             this.uiManager.createFloatingText(text, e.clientX, e.clientY, color);
                             qtyInput.value = '1';
+                            actionData = { type: 'ACTION', action: action === 'buy' ? 'buy-item' : 'sell-item', goodId: goodId };
                         }
                     }
                     break;
@@ -170,6 +193,9 @@ export class EventManager {
                     break;
                 }
             }
+            if (actionData) {
+                this.tutorialService.checkState(actionData);
+            }
         }
     }
 
@@ -190,6 +216,12 @@ export class EventManager {
     }
     
     _handleKeyDown(e) {
+        // Prevent debug keys if a tutorial is active
+        if (this.tutorialService.activeBatchId && ['!', '@', '#', '$'].includes(e.key)) {
+            this.uiManager.showToast('debugToast', 'Debug keys disabled during tutorial.');
+            return;
+        }
+
         if (e.key === 'Escape') {
             this.gameState.popupsDisabled = !this.gameState.popupsDisabled;
             this.uiManager.showToast('debugToast', `Pop-ups ${this.gameState.popupsDisabled ? 'Disabled' : 'Enabled'}`);
