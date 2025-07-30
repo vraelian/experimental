@@ -55,7 +55,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const simulationService = new SimulationService(gameState, uiManager, tutorialService);
         const eventManager = new EventManager(gameState, simulationService, uiManager, tutorialService);
 
-
         // --- Game Initialization ---
         const hasSave = gameState.loadGame();
         if (!hasSave) {
