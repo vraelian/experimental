@@ -32,6 +32,10 @@ body {
     -ms-user-select: none; /* IE 10 and IE 11 */
     user-select: none;
 }
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+}
 #restart-game-container .btn {
     padding: 0.3rem 0.6rem;
     font-size: 0.875rem;
@@ -221,6 +225,10 @@ body {
     border: 1px solid rgba(127, 149, 182, 0.5);
     border-radius: 4px; width: 24px; height: 24px;
     line-height: 24px; text-align: center; font-weight: bold;
+}
+
+#debug-toast, #garnishment-toast, #save-toast, #hull-warning-toast, #starport-unlock-tooltip {
+    z-index: 101;
 }
 
 #debug-toast, #garnishment-toast {
@@ -700,6 +708,7 @@ body {
 .tt-top-center { top: 15%; left: 50%; transform: translateX(-50%); }
 .tt-left { top: 50%; left: 2%; transform: translateY(-50%); }
 .tt-right { top: 50%; right: 2%; transform: translateY(-50%); }
+.tt-bottom-center { bottom: 5%; left: 50%; transform: translateX(-50%); }
 /* Add more as needed: .tt-center, .tt-bottom-center etc. */
 
 
@@ -847,5 +856,4 @@ body {
 }
 .active-view {
     display: block;
-}
 }

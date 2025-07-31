@@ -332,9 +332,6 @@
         { id: 'loc_kepler', name: "Kepler's Eye", description: 'A massive deep-space observatory that consumes vast amounts of processing power.', color: 'border-fuchsia-500', bg: 'bg-gradient-to-br from-fuchsia-900 to-slate-900', fuelPrice: 800, arrivalLore: "The station is a single, enormous lens staring into the abyss, surrounded by a delicate lattice of sensors and habitation rings.", modifiers: { sentient_ai: 2.0, processors: 1.8, cryo_pods: 1.3 }, specialDemand: { 'xeno_geologicals': { lore: "All Xeno-Geologicals are immediately pulverized for analysis, so none are ever sold. However, the research council pays handsomely for new samples.", bonus: 1.75 } } }
     ];
 
-    // js/data/gamedata.js
-
-// ... (Keep all existing code for LOCATION_VISUALS, PERKS, AGE_EVENTS, RANDOM_EVENTS, SHIPS, COMMODITIES, MARKETS)
 
 export const TUTORIAL_DATA = {
     'market_intro': {
@@ -345,7 +342,7 @@ export const TUTORIAL_DATA = {
                 stepId: 'market_intro_1',
                 text: 'Welcome to the Market. Here you can <span class="hl-green">buy</span> and <span class="hl-red">sell</span> commodities. Your current inventory is shown at the bottom. Try purchasing an item.',
                 highlightElementId: 'market-prices',
-                position: { desktop: 'center', mobile: 'top' },
+                position: { desktop: 'bottom-center', mobile: 'top' },
                 size: { width: '350px' },
                 completion: { type: 'ACTION', action: 'buy-item' },
                 nextStepId: 'market_intro_2'
@@ -354,7 +351,7 @@ export const TUTORIAL_DATA = {
                 stepId: 'market_intro_2',
                 text: 'Good. Your purchase is now reflected in your <span class="hl-cyan">Cargo Manifest</span>. You can sell items from here or the main market list. Try selling the item you just bought.',
                 highlightElementId: 'player-inventory',
-                position: { desktop: 'center', mobile: 'top' },
+                position: { desktop: 'bottom-center', mobile: 'top' },
                 size: { width: '350px' },
                 completion: { type: 'ACTION', action: 'sell-item' },
                 nextStepId: null
@@ -369,18 +366,18 @@ export const TUTORIAL_DATA = {
                 stepId: 'shipyard_intro_1',
                 text: 'This is the <span class="hl-cyan">Shipyard</span> where you can buy new vessels. The <span class="hl-cyan">Hangar</span> stores all ships you currently own. Click Next to continue.',
                 highlightElementId: 'starport-shipyard-panel',
-                position: { desktop: 'left', mobile: 'top' },
+                position: { desktop: 'bottom-center', mobile: 'top' },
                 size: null,
                 completion: { type: 'INFO' }, // This step is purely informational
                 nextStepId: 'shipyard_intro_2'
             },
             {
                 stepId: 'shipyard_intro_2',
-                text: 'Excellent! The new ship is now in your Hangar. You must <span class="hl-yellow">Select</span> a ship to make it your active vessel.',
+                text: 'You can purchase any ship you can afford. Once purchased, you must go to the Hangar and <span class="hl-yellow">Select</span> a ship to make it your active vessel.',
                 highlightElementId: 'starport-hangar-panel',
-                position: { desktop: 'right', mobile: 'bottom' },
+                position: { desktop: 'bottom-center', mobile: 'bottom' },
                 size: null,
-                completion: { type: 'ACTION', action: 'select-ship' },
+                completion: { type: 'ACTION', action: 'buy-ship' },
                 nextStepId: null
             }
         ]
