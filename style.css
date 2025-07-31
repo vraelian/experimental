@@ -214,6 +214,7 @@ body {
     border: 1px solid rgba(127, 149, 182, 0.5);
     color: #e0e0e0; border-radius: 6px; width: 48px; text-align: center;
     -moz-appearance: textfield; /* Firefox */
+    appearance: none; /* Standard property to remove default browser styling */
 }
 .qty-input::-webkit-outer-spin-button,
 .qty-input::-webkit-inner-spin-button {
