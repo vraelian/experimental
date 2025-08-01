@@ -227,7 +227,6 @@ export class UIManager {
                     </div>
                     <div class="text-center text-lg text-cyan-200 font-orbitron flex items-center justify-center gap-2">
                         <span>${player.playerTitle} ${player.name}, ${player.playerAge}</span>
-                        <span class="graph-icon" data-action="show-finance-graph">📈</span>
                     </div>
                 </div>
             </div>`;
